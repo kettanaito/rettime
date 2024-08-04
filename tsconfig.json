@@ -1,0 +1,7 @@
+{
+  "include": ["**/*.ts"],
+  "compilerOptions": {
+    "target": "es2022",
+    "types": ["vitest/globals"]
+  }
+}
