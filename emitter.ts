@@ -83,7 +83,7 @@ export class Emitter<Events extends EventsMap> {
     for (const registration of listeners) {
       if (registration[0] === type) {
         if (event.defaultPrevented || event[kPropagationStopped]) {
-          continue
+          break
         }
 
         this.#callListener(registration, event)
@@ -112,7 +112,7 @@ export class Emitter<Events extends EventsMap> {
 
     for (const registration of listeners) {
       if (event.defaultPrevented || event[kPropagationStopped]) {
-        continue
+        break
       }
 
       pendingListeners.push(
@@ -143,7 +143,7 @@ export class Emitter<Events extends EventsMap> {
 
     for (const registration of listeners) {
       if (event.defaultPrevented || event[kPropagationStopped]) {
-        continue
+        break
       }
 
       yield this.#callListener(registration, event)
