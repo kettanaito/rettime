@@ -1,12 +1,14 @@
 # Emitter
 
+Yet another implementation of type-safe event emitter. This time, with a twist.
+
 ## Features
 
-- Event-based. Control event flow: Prevent default, stop propagation, cancel events.
-- Emitter-inspired. Emit event types and data, don't bother with creating `Event` instances.
-- Type-safe.
-- Convenience methods like `.emitAsPromise()` and `.emitAsGenerator()` to build more complex event-driven systems.
-- Tiny. Performant? I hope.
+- **Event-based**. Control event flow: prevent defaults, stop propagation, cancel events. Something your common `Emitter` can't do.
+- **Emitter-inspired**. Emit event types and data, don't bother with creating `Event` instances. A bit less verbosity than a common `EventTarget`.
+- **Type-safe**. Describe the exact event types and payloads accepted by the emitter. Never emit or listen to unknown events.
+- **Convenience methods** like `.emitAsPromise()` and `.emitAsGenerator()` to build more complex event-driven systems.
+- **Tiny**. Like, really tiny.
 
 ## API
 
