@@ -132,11 +132,11 @@ export class Emitter<Events extends EventsMap> {
    * the result of each listener. This way, you stop exhausting
    * the listeners once you get the expected value.
    */
-  public *emitAsGenerator<Type extends keyof Events & string>(
+  public async *emitAsGenerator<Type extends keyof Events & string>(
     ...args: Events[Type] extends [never]
       ? [type: Type]
       : [type: Type, data: Events[Type]]
-  ): Generator<unknown> {
+  ): AsyncGenerator<unknown> {
     const listeners = Array.from(this.#listeners)
     const [type, data] = args
     const event = this.#createEventForData(type, data)
@@ -146,7 +146,7 @@ export class Emitter<Events extends EventsMap> {
         break
       }
 
-      yield this.#callListener(registration, event)
+      yield await this.#callListener(registration, event)
     }
   }
 
