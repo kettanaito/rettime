@@ -46,10 +46,9 @@ export class Emitter<Events extends EventsMap> {
     type: Type,
     listener: StrictEventListenerOrListenerObject<
       DataToEvent<Type, Events[Type]>
-    >,
-    options?: AddEventListenerOptions
+    >
   ): void {
-    this.#listeners.push([type, listener, options])
+    this.#listeners.push([type, listener])
   }
 
   /**
@@ -59,10 +58,9 @@ export class Emitter<Events extends EventsMap> {
     type: Type,
     listener: StrictEventListenerOrListenerObject<
       DataToEvent<Type, Events[Type]>
-    >,
-    options?: AddEventListenerOptions
+    >
   ): void {
-    this.#listeners.push([type, listener, { ...options, once: true }])
+    this.#listeners.push([type, listener, { once: true }])
   }
 
   /**
@@ -132,11 +130,11 @@ export class Emitter<Events extends EventsMap> {
    * the result of each listener. This way, you stop exhausting
    * the listeners once you get the expected value.
    */
-  public async *emitAsGenerator<Type extends keyof Events & string>(
+  public *emitAsGenerator<Type extends keyof Events & string>(
     ...args: Events[Type] extends [never]
       ? [type: Type]
       : [type: Type, data: Events[Type]]
-  ): AsyncGenerator<unknown> {
+  ): Generator<unknown> {
     const listeners = Array.from(this.#listeners)
     const [type, data] = args
     const event = this.#createEventForData(type, data)
@@ -146,7 +144,7 @@ export class Emitter<Events extends EventsMap> {
         break
       }
 
-      yield await this.#callListener(registration, event)
+      yield this.#callListener(registration, event)
     }
   }
 

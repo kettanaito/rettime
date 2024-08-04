@@ -52,7 +52,7 @@ it('does not call listeners for non-matching event', () => {
 it('removes the one-time listener after it has been called', () => {
   const emitter = new Emitter<{ hello: never }>()
   const listener = vi.fn()
-  emitter.on('hello', listener, { once: true })
+  emitter.once('hello', listener)
 
   expect(emitter.emit('hello')).toBe(true)
   expect(listener).toHaveBeenCalledTimes(1)
