@@ -6,7 +6,7 @@ it('forwards event to another emitter', () => {
 
   const listener = vi.fn()
   emitterOne.on('one', (event) => {
-    emitterTwo.dispatch(event)
+    emitterTwo.emit(event.type, event.data)
   })
   emitterTwo.on('one', listener)
 

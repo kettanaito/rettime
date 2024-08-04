@@ -148,13 +148,6 @@ export class Emitter<Events extends EventsMap> {
     }
   }
 
-  public dispatch<Type extends keyof Events & string>(event: TypedEvent<Type>) {
-    if ('data' in event) {
-      return this.emit.call(this, event.type, event.data)
-    }
-    return this.emit.call(this, event.type)
-  }
-
   /**
    * Removes the given listener.
    */
