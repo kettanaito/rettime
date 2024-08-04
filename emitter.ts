@@ -86,14 +86,8 @@ export class Emitter<Events extends EventsMap> {
           continue
         }
 
-        const listener = this.#getListenerFunction(registration[1])
-        listener.call(this, event)
+        this.#callListener(registration, event)
         hasListeners = true
-
-        // Remove one-time listeners.
-        if (typeof registration[2] === 'object' && registration[2].once) {
-          this.removeListener(type, registration[1], registration[2])
-        }
       }
     }
 
@@ -121,8 +115,9 @@ export class Emitter<Events extends EventsMap> {
         continue
       }
 
-      const listener = this.#getListenerFunction(registration[1])
-      pendingListeners.push(await Promise.resolve(listener.call(this, event)))
+      pendingListeners.push(
+        await Promise.resolve(this.#callListener(registration, event))
+      )
     }
 
     return Promise.allSettled(pendingListeners).then((results) => {
@@ -151,8 +146,7 @@ export class Emitter<Events extends EventsMap> {
         continue
       }
 
-      const listener = this.#getListenerFunction(registration[1])
-      yield listener.call(this, event)
+      yield this.#callListener(registration, event)
     }
   }
 
@@ -282,5 +276,17 @@ export class Emitter<Events extends EventsMap> {
     return 'handleEvent' in listenerOrListenerObject
       ? listenerOrListenerObject.handleEvent
       : listenerOrListenerObject
+  }
+
+  #callListener(registration: EventListenerRegistration<Events>, event: Event) {
+    const listener = this.#getListenerFunction(registration[1])
+    const listenerResult = listener.call(this, event)
+
+    // Remove one-time listeners.
+    if (typeof registration[2] === 'object' && registration[2].once) {
+      this.removeListener(registration[0], registration[1], registration[2])
+    }
+
+    return listenerResult
   }
 }
