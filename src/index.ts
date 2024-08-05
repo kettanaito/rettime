@@ -141,6 +141,8 @@ export class Emitter<Events extends EventsMap> {
       )
     }
 
+    this.#eventsCache.delete([args[0], args[1]])
+
     return Promise.allSettled(pendingListeners).then((results) => {
       return results.map((result) =>
         result.status === 'fulfilled' ? result.value : result.reason
@@ -171,6 +173,8 @@ export class Emitter<Events extends EventsMap> {
 
       yield this.#callListener(listener, event)
     }
+
+    this.#eventsCache.delete([args[0], args[1]])
   }
 
   /**
