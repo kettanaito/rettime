@@ -42,8 +42,9 @@ export class Emitter<Events extends EventsMap> {
   public on<Type extends keyof Events & string>(
     type: Type,
     listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
-  ): void {
+  ): this {
     this.#addListener(type, listener)
+    return this
   }
 
   /**
@@ -63,12 +64,13 @@ export class Emitter<Events extends EventsMap> {
   public earlyOn<Type extends keyof Events & string>(
     type: Type,
     listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
-  ): void {
+  ): this {
     if (!this.#listeners[type]) {
       this.#listeners[type] = []
     }
 
     this.#listeners[type].unshift(listener)
+    return this
   }
 
   /**
@@ -77,9 +79,10 @@ export class Emitter<Events extends EventsMap> {
   public earlyOnce<Type extends keyof Events & string>(
     type: Type,
     listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
-  ): void {
+  ): this {
     this.earlyOn(type, listener)
     this.#listenerOptions.set(listener, { once: true })
+    return this
   }
 
   /**
