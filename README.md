@@ -1,14 +1,14 @@
 # Emitter
 
-Yet another implementation of type-safe event emitter. This time, with a twist.
+Type-safe dependency-free EventTarget-inspired event emitter for browser and Node.js.
 
 ## Features
 
-- **Event-based**. Control event flow: prevent defaults, stop propagation, cancel events. Something your common `Emitter` can't do.
-- **Emitter-inspired**. Emit event types and data, don't bother with creating `Event` instances. A bit less verbosity than a common `EventTarget`.
-- **Type-safe**. Describe the exact event types and payloads accepted by the emitter. Never emit or listen to unknown events.
-- **Convenience methods** like `.emitAsPromise()` and `.emitAsGenerator()` to build more complex event-driven systems.
-- **Tiny**. Like, really tiny.
+- 🎯 **Event-based**. Control event flow: prevent defaults, stop propagation, cancel events. Something your common `Emitter` can't do.
+- 🗼 **Emitter-inspired**. Emit event types and data, don't bother with creating `Event` instances. A bit less verbosity than a common `EventTarget`.
+- ⛑️ **Type-safe**. Describe the exact event types and payloads accepted by the emitter. Never emit or listen to unknown events.
+- 🧰 **Convenience methods** like `.emitAsPromise()` and `.emitAsGenerator()` to build more complex event-driven systems.
+- 🐙 **Tiny**. 700B gzipped.
 
 > [!WARNING]
 > This library **does not** have performance as the end goal. In fact, since it operates on events and supports event cancellation, it will likely be slower than other emitters out there.

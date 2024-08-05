@@ -2,7 +2,7 @@
   "type": "module",
   "name": "event-target-ts",
   "version": "0.0.0",
-  "description": "",
+  "description": "Type-safe dependency-free EventTarget-inspired event emitter for browser and Node.js",
   "main": "./build/index.js",
   "types": "./build/index.d.ts",
   "scripts": {
