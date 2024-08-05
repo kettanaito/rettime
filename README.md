@@ -13,6 +13,25 @@ Type-safe dependency-free EventTarget-inspired event emitter for browser and Nod
 > [!WARNING]
 > This library **does not** have performance as the end goal. In fact, since it operates on events and supports event cancellation, it will likely be slower than other emitters out there.
 
+## Motivation
+
+### Why not just `EventTarget`?
+
+The `EventTarget` API is fantastic. It works in the browser and in Node.js, dispatches actual events, supports cancellation, etc. At the same time, it has a number of flaws that prevent me from using it for anything serious:
+
+- Complete lack of type safety. The `type` in `new Event(type)` is not a type argument in `lib.dom.ts`. It's always `string`. It means it's impossible to narrow it down to a literal string type to achieve type safety.
+- No concept of `.removeAllListeners()`. You have to remove each individual listener by hand. Good if you own the listeners, not so good if you don't.
+- No concept of `.listenerCount()` or knowing if a dispatched event had any listeners (the `boolean` returned from `.dispatch()` indicates if the event has been prevented, not whether it had any listeners).
+- (Opinionated) Verbose. I prefer `.on()` over `.addEventListener()`. I prefer passing data than constructing `new MessageEvent()` all the time.
+
+### Why not just `Emitter` (in Node.js)?
+
+The `Emitter` API in Node.js is great as well. But...
+
+- Node.js-specific. `Emitter` does not work in the browser.
+- Complete lack of type safety.
+- No concept of event cancellation. Events emit to all listeners, and there's nothing you can do about it.
+
 ## Install
 
 ```sh
