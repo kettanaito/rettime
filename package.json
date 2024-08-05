@@ -5,6 +5,10 @@
   "description": "Type-safe dependency-free EventTarget-inspired event emitter for browser and Node.js",
   "main": "./build/index.js",
   "types": "./build/index.d.ts",
+  "files": [
+    "build",
+    "src"
+  ],
   "scripts": {
     "test": "vitest",
     "benchmark": "vitest bench",

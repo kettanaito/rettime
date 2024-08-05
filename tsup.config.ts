@@ -5,7 +5,8 @@ export default defineConfig({
   format: 'esm',
   outDir: './build',
   clean: true,
-  minify: true,
+  minify: false,
+  sourcemap: true,
   bundle: false,
   dts: true,
 })
