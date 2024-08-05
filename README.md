@@ -20,6 +20,7 @@ Type-safe dependency-free EventTarget-inspired event emitter for browser and Nod
 The `EventTarget` API is fantastic. It works in the browser and in Node.js, dispatches actual events, supports cancellation, etc. At the same time, it has a number of flaws that prevent me from using it for anything serious:
 
 - Complete lack of type safety. The `type` in `new Event(type)` is not a type argument in `lib.dom.ts`. It's always `string`. It means it's impossible to narrow it down to a literal string type to achieve type safety.
+- No concept of `.prependListener()`. There is no way to add a listener to run _first_, before other existing listeners.
 - No concept of `.removeAllListeners()`. You have to remove each individual listener by hand. Good if you own the listeners, not so good if you don't.
 - No concept of `.listenerCount()` or knowing if a dispatched event had any listeners (the `boolean` returned from `.dispatch()` indicates if the event has been prevented, not whether it had any listeners).
 - (Opinionated) Verbose. I prefer `.on()` over `.addEventListener()`. I prefer passing data than constructing `new MessageEvent()` all the time.
