@@ -1,7 +1,7 @@
 import { Emitter } from '../src'
 
 it('emits event without any data', () => {
-  const emitter = new Emitter<{ hello: never }>()
+  const emitter = new Emitter<{ hello: [never] }>()
   const listener = vi.fn()
   emitter.on('hello', listener)
   const hasListeners = emitter.emit('hello')
@@ -12,7 +12,7 @@ it('emits event without any data', () => {
 })
 
 it('emits event with data', () => {
-  const emitter = new Emitter<{ hello: 'world' }>()
+  const emitter = new Emitter<{ hello: ['world'] }>()
   const listener = vi.fn()
   emitter.on('hello', listener)
   const hasListeners = emitter.emit('hello', 'world')
@@ -25,7 +25,7 @@ it('emits event with data', () => {
 })
 
 it('calls all listeners for the event', () => {
-  const emitter = new Emitter<{ hello: never }>()
+  const emitter = new Emitter<{ hello: [never] }>()
   const listenerOne = vi.fn()
   const listenerTwo = vi.fn()
   emitter.on('hello', listenerOne)
@@ -40,7 +40,7 @@ it('calls all listeners for the event', () => {
 })
 
 it('does not call listeners for non-matching event', () => {
-  const emitter = new Emitter<{ one: never; two: never }>()
+  const emitter = new Emitter<{ one: [never]; two: [never] }>()
   const listener = vi.fn()
   emitter.on('one', listener)
   const hasListeners = emitter.emit('two')
@@ -50,7 +50,7 @@ it('does not call listeners for non-matching event', () => {
 })
 
 it('removes the one-time listener after it has been called', () => {
-  const emitter = new Emitter<{ hello: never }>()
+  const emitter = new Emitter<{ hello: [never] }>()
   const listener = vi.fn()
   emitter.once('hello', listener)
 
@@ -65,7 +65,7 @@ it('removes the one-time listener after it has been called', () => {
 })
 
 it('stops calling listeners if event default is prevented', () => {
-  const emitter = new Emitter<{ hello: never }>()
+  const emitter = new Emitter<{ hello: [never] }>()
   const listenerOne = vi.fn((event: Event) => event.preventDefault())
   const listenerTwo = vi.fn()
   emitter.on('hello', listenerOne)
@@ -78,7 +78,7 @@ it('stops calling listeners if event default is prevented', () => {
 })
 
 it('stops calling listeners if event propagation is stopped', () => {
-  const emitter = new Emitter<{ hello: never }>()
+  const emitter = new Emitter<{ hello: [never] }>()
   const listenerOne = vi.fn((event: Event) => event.stopImmediatePropagation())
   const listenerTwo = vi.fn()
   emitter.on('hello', listenerOne)

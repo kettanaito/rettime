@@ -1,7 +1,7 @@
 import { Emitter } from '../src'
 
 it('prepends a one-time listener for the event', () => {
-  const emitter = new Emitter<{ hello: never }>()
+  const emitter = new Emitter<{ hello: [never] }>()
   const listenerOne = vi.fn(function one() {})
   const listenerTwo = vi.fn(function two() {})
 

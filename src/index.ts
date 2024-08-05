@@ -1,11 +1,11 @@
 export type EventsMap = {
-  [type: string]: unknown
+  [type: string]: [payload: unknown, listenerResult?: unknown]
 }
 
 type TypedEvent<T extends string> = Event & { type: T }
 
-export interface StrictEventListener<E extends globalThis.Event> {
-  (event: E): void
+export interface StrictEventListener<E extends globalThis.Event, R = void> {
+  (event: E): [R] extends [undefined] ? void : R
 }
 
 type DataToEvent<Type extends string, Data extends unknown> = [Data] extends [
@@ -18,7 +18,8 @@ type InternalListenersMap<Events extends EventsMap> = Record<
   keyof Events,
   Array<
     StrictEventListener<
-      DataToEvent<keyof Events & string, Events[keyof Events]>
+      DataToEvent<keyof Events & string, Events[keyof Events][0]>,
+      Events[keyof Events][1]
     >
   >
 >
@@ -41,7 +42,10 @@ export class Emitter<Events extends EventsMap> {
    */
   public on<Type extends keyof Events & string>(
     type: Type,
-    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
+    listener: StrictEventListener<
+      DataToEvent<Type, Events[Type][0]>,
+      Events[Type][1]
+    >
   ): this {
     this.#addListener(type, listener)
     return this
@@ -52,7 +56,10 @@ export class Emitter<Events extends EventsMap> {
    */
   public once<Type extends keyof Events & string>(
     type: Type,
-    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
+    listener: StrictEventListener<
+      DataToEvent<Type, Events[Type][0]>,
+      Events[Type][1]
+    >
   ): void {
     this.#addListener(type, listener)
     this.#listenerOptions.set(listener, { once: true })
@@ -90,9 +97,9 @@ export class Emitter<Events extends EventsMap> {
    * second argument if the event contains data.
    */
   public emit<Type extends keyof Events & string>(
-    ...args: Events[Type] extends [never]
+    ...args: Events[Type][0] extends [never]
       ? [type: Type]
-      : [type: Type, data: Events[Type]]
+      : [type: Type, data: Events[Type][0]]
   ): boolean {
     if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
       return false
@@ -120,9 +127,9 @@ export class Emitter<Events extends EventsMap> {
    * to guarantee call order and prevent race conditions.
    */
   public async emitAsPromise<Type extends keyof Events & string>(
-    ...args: Events[Type] extends [never]
+    ...args: Events[Type][0] extends [never]
       ? [type: Type]
-      : [type: Type, data: Events[Type]]
+      : [type: Type, data: Events[Type][0]]
   ): Promise<Array<unknown>> {
     if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
       return []
@@ -156,9 +163,9 @@ export class Emitter<Events extends EventsMap> {
    * the listeners once you get the expected value.
    */
   public *emitAsGenerator<Type extends keyof Events & string>(
-    ...args: Events[Type] extends [never]
+    ...args: Events[Type][0] extends [never]
       ? [type: Type]
-      : [type: Type, data: Events[Type]]
+      : [type: Type, data: Events[Type][0]]
   ): Generator<unknown> {
     if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
       return
@@ -253,7 +260,7 @@ export class Emitter<Events extends EventsMap> {
 
   #createEventForData<Type extends keyof Events & string>(
     type: Type,
-    data: Events[Type]
+    data: Events[Type][0]
   ): Event {
     const cachedEvent = this.#eventsCache.get([type, data])
 

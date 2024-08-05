@@ -1,7 +1,7 @@
 import { Emitter } from '../src'
 
 it('prepends a listener for the event', () => {
-  const emitter = new Emitter<{ hello: never }>()
+  const emitter = new Emitter<{ hello: [never] }>()
   const listenerOne = vi.fn()
   const listenerTwo = vi.fn()
 
@@ -17,7 +17,7 @@ it('prepends a listener for the event', () => {
 })
 
 it('prepends the only event listener', () => {
-  const emitter = new Emitter<{ hello: never }>()
+  const emitter = new Emitter<{ hello: [never] }>()
   const listener = vi.fn()
   emitter.earlyOn('hello', listener)
 
@@ -26,7 +26,7 @@ it('prepends the only event listener', () => {
 })
 
 it('prepends a listener for async emit', async () => {
-  const emitter = new Emitter<{ hello: never }>()
+  const emitter = new Emitter<{ hello: [never] }>()
   const listenerOne = vi.fn(() => 1)
   const listenerTwo = vi.fn(() => 2)
 
@@ -44,7 +44,7 @@ it('prepends a listener for async emit', async () => {
 })
 
 it('prepend a listener for generator emit', () => {
-  const emitter = new Emitter<{ hello: never }>()
+  const emitter = new Emitter<{ hello: [never] }>()
   const listenerOne = vi.fn(() => 1)
   const listenerTwo = vi.fn(() => 2)
 

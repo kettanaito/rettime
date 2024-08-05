@@ -46,7 +46,7 @@ npm install rettime
 Adds an event listener for the given event type.
 
 ```ts
-const emitter = new Emitter<{ hello: string }>()
+const emitter = new Emitter<{ hello: [string] }>()
 
 emitter.on('hello', 'John') // ✅
 emitter.on('hello', 123) // ❌ number is not assignable to type string
@@ -62,7 +62,7 @@ Adds a one-time event listener for the given event type.
 Prepends a listener for the given event type.
 
 ```ts
-const emitter = new Emitter<{ hello: string }>()
+const emitter = new Emitter<{ hello: [string, number] }>()
 
 emitter.on('hello', () => 1)
 emitter.earlyOn('hello', () => 2)
@@ -80,7 +80,7 @@ Prepends a one-time listener for the given event type.
 Emits the given event with optional data.
 
 ```ts
-const emitter = new Emitter<{ hello: string }>()
+const emitter = new Emitter<{ hello: [string] }>()
 
 emitter.on('hello', (event) => console.log(event.data))
 
@@ -92,7 +92,7 @@ emitter.emit('hello', 'John')
 Emits the given event with optional data, and returns a Promise that resolves with the returned data of all matching event listeners, or rejects whenever any of the matching event listeners throws an error.
 
 ```ts
-const emitter = new Emitter<{ hello: number }>()
+const emitter = new Emitter<{ hello: [number, Promise<number>] }>()
 
 emitter.on('hello', async (event) => {
   await sleep(100)
@@ -109,7 +109,7 @@ const values = await emitter.emitAsPromise('hello', 1)
 Emits the given event with optional data, and returns a generator function that exhausts all matching event listeners. Using a generator gives you granular control over what listeners are called.
 
 ```ts
-const emitter = new Emitter<{ hello: string }>()
+const emitter = new Emitter<{ hello: [string, number] }>()
 
 emitter.on('hello', () => 1)
 emitter.on('hello', () => 2)
