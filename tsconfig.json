@@ -2,6 +2,7 @@
   "include": ["**/*.ts"],
   "compilerOptions": {
     "target": "es2022",
+    "moduleResolution": "bundler",
     "types": ["vitest/globals"]
   }
 }

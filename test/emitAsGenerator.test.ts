@@ -1,4 +1,4 @@
-import { Emitter } from '../emitter'
+import { Emitter } from '../src'
 
 it('returns empty generator if no matching listeners found', async () => {
   const emitter = new Emitter<{ hello: never }>()

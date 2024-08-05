@@ -1,4 +1,4 @@
-import { Emitter } from '../emitter'
+import { Emitter } from '../src'
 
 it('emits event without any data', () => {
   const emitter = new Emitter<{ hello: never }>()

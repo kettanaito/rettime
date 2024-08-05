@@ -4,24 +4,8 @@ export type EventsMap = {
 
 type TypedEvent<T extends string> = Event & { type: T }
 
-type EventListenerRegistration<Events extends EventsMap> = [
-  type: keyof Events,
-  listener: StrictEventListenerOrListenerObject<
-    DataToEvent<string, Events[any]>
-  >,
-  options?: AddEventListenerOptions | boolean
-]
-
-export type StrictEventListenerOrListenerObject<E extends globalThis.Event> =
-  | StrictEventListener<E>
-  | StrictEventListenerObject<E>
-
 export interface StrictEventListener<E extends globalThis.Event> {
   (event: E): void
-}
-
-export interface StrictEventListenerObject<E extends globalThis.Event> {
-  handleEvent(event: E): void
 }
 
 type DataToEvent<Type extends string, Data extends unknown> = [Data] extends [
@@ -30,13 +14,26 @@ type DataToEvent<Type extends string, Data extends unknown> = [Data] extends [
   ? TypedEvent<Type>
   : MessageEvent<Data> & { type: Type }
 
+type InternalListenersMap<Events extends EventsMap> = Record<
+  keyof Events,
+  Array<
+    StrictEventListener<
+      DataToEvent<keyof Events & string, Events[keyof Events]>
+    >
+  >
+>
+
 const kPropagationStopped = Symbol('kPropagationStopped')
 
 export class Emitter<Events extends EventsMap> {
-  #listeners: Array<EventListenerRegistration<Events>>
+  #listeners: InternalListenersMap<Events>
+  #listenerOptions: WeakMap<Function, AddEventListenerOptions>
+  #eventsCache: WeakMap<[string, unknown], Event>
 
   constructor() {
-    this.#listeners = []
+    this.#listeners = {} as InternalListenersMap<Events>
+    this.#listenerOptions = new WeakMap()
+    this.#eventsCache = new WeakMap()
   }
 
   /**
@@ -44,11 +41,9 @@ export class Emitter<Events extends EventsMap> {
    */
   public on<Type extends keyof Events & string>(
     type: Type,
-    listener: StrictEventListenerOrListenerObject<
-      DataToEvent<Type, Events[Type]>
-    >
+    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
   ): void {
-    this.#listeners.push([type, listener])
+    this.#addListener(type, listener)
   }
 
   /**
@@ -56,11 +51,10 @@ export class Emitter<Events extends EventsMap> {
    */
   public once<Type extends keyof Events & string>(
     type: Type,
-    listener: StrictEventListenerOrListenerObject<
-      DataToEvent<Type, Events[Type]>
-    >
+    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
   ): void {
-    this.#listeners.push([type, listener, { once: true }])
+    this.#addListener(type, listener)
+    this.#listenerOptions.set(listener, { once: true })
   }
 
   /**
@@ -72,24 +66,23 @@ export class Emitter<Events extends EventsMap> {
       ? [type: Type]
       : [type: Type, data: Events[Type]]
   ): boolean {
-    const [type, data] = args
-    let hasListeners = false
-
-    const listeners = Array.from(this.#listeners)
-    const event = this.#createEventForData(type, data)
-
-    for (const registration of listeners) {
-      if (registration[0] === type) {
-        if (event.defaultPrevented || event[kPropagationStopped]) {
-          break
-        }
-
-        this.#callListener(registration, event)
-        hasListeners = true
-      }
+    if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
+      return false
     }
 
-    return hasListeners
+    const event = this.#createEventForData(args[0], args[1])
+
+    for (const listener of this.#listeners[args[0]]) {
+      if (this.#wasEventCancelled(event)) {
+        break
+      }
+
+      this.#callListener(listener, event)
+    }
+
+    this.#eventsCache.delete([args[0], args[1]])
+
+    return true
   }
 
   /**
@@ -103,18 +96,20 @@ export class Emitter<Events extends EventsMap> {
       ? [type: Type]
       : [type: Type, data: Events[Type]]
   ): Promise<Array<unknown>> {
-    const listeners = Array.from(this.#listeners)
-    const [type, data] = args
-    const event = this.#createEventForData(type, data)
+    if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
+      return []
+    }
+
+    const event = this.#createEventForData(args[0], args[1])
     const pendingListeners: Array<Promise<unknown>> = []
 
-    for (const registration of listeners) {
-      if (event.defaultPrevented || event[kPropagationStopped]) {
+    for (const listener of this.#listeners[args[0]]) {
+      if (this.#wasEventCancelled(event)) {
         break
       }
 
       pendingListeners.push(
-        await Promise.resolve(this.#callListener(registration, event))
+        await Promise.resolve(this.#callListener(listener, event))
       )
     }
 
@@ -135,16 +130,18 @@ export class Emitter<Events extends EventsMap> {
       ? [type: Type]
       : [type: Type, data: Events[Type]]
   ): Generator<unknown> {
-    const listeners = Array.from(this.#listeners)
-    const [type, data] = args
-    const event = this.#createEventForData(type, data)
+    if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
+      return
+    }
 
-    for (const registration of listeners) {
-      if (event.defaultPrevented || event[kPropagationStopped]) {
+    const event = this.#createEventForData(args[0], args[1])
+
+    for (const listener of this.#listeners[args[0]]) {
+      if (this.#wasEventCancelled(event)) {
         break
       }
 
-      yield this.#callListener(registration, event)
+      yield this.#callListener(listener, event)
     }
   }
 
@@ -153,24 +150,23 @@ export class Emitter<Events extends EventsMap> {
    */
   public removeListener<Type extends keyof Events & string>(
     type: Type,
-    listener: StrictEventListenerOrListenerObject<
-      DataToEvent<Type, Events[Type]>
-    >,
-    options?: AddEventListenerOptions | boolean
+    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
   ): void {
-    const nextListeners: Array<EventListenerRegistration<Events>> = []
+    this.#listenerOptions.delete(listener)
 
-    for (const registration of this.#listeners) {
-      if (
-        registration[0] !== type ||
-        registration[1] !== listener ||
-        JSON.stringify(registration[2]) !== JSON.stringify(options)
-      ) {
-        nextListeners.push(registration)
+    if (!this.#listeners[type]) {
+      return
+    }
+
+    const nextListeners: Array<StrictEventListener<Event>> = []
+
+    for (const existingListener of this.#listeners[type]) {
+      if (existingListener !== listener) {
+        nextListeners.push(listener)
       }
     }
 
-    this.#listeners = nextListeners
+    this.#listeners[type] = nextListeners
   }
 
   /**
@@ -181,19 +177,11 @@ export class Emitter<Events extends EventsMap> {
     type?: Type
   ): void {
     if (type == null) {
-      this.#listeners.length = 0
+      this.#listeners = {} as InternalListenersMap<Events>
       return
     }
 
-    const nextListeners: Array<EventListenerRegistration<Events>> = []
-
-    for (const registration of this.#listeners) {
-      if (registration[0] !== type) {
-        nextListeners.push(registration)
-      }
-    }
-
-    this.#listeners = nextListeners
+    this.#listeners[type] = []
   }
 
   /**
@@ -202,20 +190,12 @@ export class Emitter<Events extends EventsMap> {
    */
   public listeners<Type extends keyof Events & string>(
     type?: Type
-  ): Array<
-    StrictEventListenerOrListenerObject<DataToEvent<Type, Events[Type]>>
-  > {
-    const listeners: Array<
-      StrictEventListenerOrListenerObject<DataToEvent<Type, Events[Type]>>
-    > = []
-
-    for (const registration of this.#listeners) {
-      if (type == null || registration[0] === type) {
-        listeners.push(registration[1])
-      }
+  ): Array<StrictEventListener<DataToEvent<Type, Events[Type]>>> {
+    if (type == null) {
+      return Object.values(this.#listeners).flat()
     }
 
-    return listeners
+    return this.#listeners[type]
   }
 
   /**
@@ -228,10 +208,27 @@ export class Emitter<Events extends EventsMap> {
     return this.listeners(type).length
   }
 
+  #addListener<Type extends keyof Events & string>(
+    type: Type,
+    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
+  ) {
+    if (!this.#listeners[type]) {
+      this.#listeners[type] = []
+    }
+
+    this.#listeners[type].push(listener)
+  }
+
   #createEventForData<Type extends keyof Events & string>(
     type: Type,
     data: Events[Type]
   ): Event {
+    const cachedEvent = this.#eventsCache.get([type, data])
+
+    if (cachedEvent) {
+      return cachedEvent
+    }
+
     let event =
       data == null
         ? new Event(type, { cancelable: true })
@@ -258,24 +255,20 @@ export class Emitter<Events extends EventsMap> {
       },
     })
 
+    this.#eventsCache.set([type, data], event)
+
     return event
   }
 
-  #getListenerFunction(
-    listenerOrListenerObject: StrictEventListenerOrListenerObject<any>
-  ): StrictEventListener<any> {
-    return 'handleEvent' in listenerOrListenerObject
-      ? listenerOrListenerObject.handleEvent
-      : listenerOrListenerObject
+  #wasEventCancelled(event: Event): boolean {
+    return event.defaultPrevented || event[kPropagationStopped]
   }
 
-  #callListener(registration: EventListenerRegistration<Events>, event: Event) {
-    const listener = this.#getListenerFunction(registration[1])
+  #callListener(listener: StrictEventListener<Event>, event: Event) {
     const listenerResult = listener.call(this, event)
 
-    // Remove one-time listeners.
-    if (typeof registration[2] === 'object' && registration[2].once) {
-      this.removeListener(registration[0], registration[1], registration[2])
+    if (this.#listenerOptions.get(listener)?.once) {
+      this.removeListener(event.type, listener)
     }
 
     return listenerResult

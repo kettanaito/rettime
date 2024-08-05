@@ -1,4 +1,4 @@
-import { Emitter } from '../emitter'
+import { Emitter } from '../src'
 
 it('calls the one-time listener once', () => {
   const emitter = new Emitter<{ hello: never }>()

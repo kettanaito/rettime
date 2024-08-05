@@ -1,4 +1,4 @@
-import { Emitter } from '../emitter'
+import { Emitter } from '../src'
 
 it('forwards event to another emitter', () => {
   const emitterOne = new Emitter<{ one: string }>()
