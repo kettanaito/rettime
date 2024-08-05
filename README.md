@@ -1,4 +1,4 @@
-# Emitter
+# Rettime
 
 Type-safe dependency-free EventTarget-inspired event emitter for browser and Node.js.
 
@@ -12,6 +12,12 @@ Type-safe dependency-free EventTarget-inspired event emitter for browser and Nod
 
 > [!WARNING]
 > This library **does not** have performance as the end goal. In fact, since it operates on events and supports event cancellation, it will likely be slower than other emitters out there.
+
+## Install
+
+```sh
+npm install rettime
+```
 
 ## API
 

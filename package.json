@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "name": "event-target-ts",
+  "name": "rettime",
   "version": "0.0.0",
   "description": "Type-safe dependency-free EventTarget-inspired event emitter for browser and Node.js",
   "main": "./build/index.js",
@@ -10,8 +10,15 @@
     "benchmark": "vitest bench",
     "build": "tsup"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "emitter",
+    "event",
+    "dispatcher",
+    "type-safe",
+    "strict",
+    "event-target"
+  ],
+  "author": "Artem Zakharchenko <me@kettanaito.com>",
   "license": "MIT",
   "devDependencies": {
     "tsup": "^8.2.4",
