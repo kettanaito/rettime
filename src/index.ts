@@ -58,6 +58,31 @@ export class Emitter<Events extends EventsMap> {
   }
 
   /**
+   * Prepends a listener for the given event type.
+   */
+  public earlyOn<Type extends keyof Events & string>(
+    type: Type,
+    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
+  ): void {
+    if (!this.#listeners[type]) {
+      this.#listeners[type] = []
+    }
+
+    this.#listeners[type].unshift(listener)
+  }
+
+  /**
+   * Prepends a one-time listener for the given event type.
+   */
+  public earlyOnce<Type extends keyof Events & string>(
+    type: Type,
+    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
+  ): void {
+    this.earlyOn(type, listener)
+    this.#listenerOptions.set(listener, { once: true })
+  }
+
+  /**
    * Emits the given event type. Accepts the data as the
    * second argument if the event contains data.
    */
@@ -162,7 +187,7 @@ export class Emitter<Events extends EventsMap> {
 
     for (const existingListener of this.#listeners[type]) {
       if (existingListener !== listener) {
-        nextListeners.push(listener)
+        nextListeners.push(existingListener)
       }
     }
 

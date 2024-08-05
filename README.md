@@ -57,6 +57,24 @@ emitter.on('hello') // ❌ missing data argument of type string
 
 Adds a one-time event listener for the given event type.
 
+### `.earlyOn(type, listener)`
+
+Prepends a listener for the given event type.
+
+```ts
+const emitter = new Emitter<{ hello: string }>()
+
+emitter.on('hello', () => 1)
+emitter.earlyOn('hello', () => 2)
+
+const results = await emitter.emitAsPromise('hello')
+// [2, 1]
+```
+
+### `.earlyOnce(type, listener)`
+
+Prepends a one-time listener for the given event type.
+
 ### `.emit(type[, data])`
 
 Emits the given event with optional data.
@@ -112,7 +130,7 @@ Returns the list of all event listeners matching the given event type. If no eve
 
 Returns the number of the event listeners matching the given event type. If no event `type` is provided, returns the total number of existing listeners.
 
-### `.removeListener(type, listener[, options])`
+### `.removeListener(type, listener)`
 
 Removes the event listener for the given event type.
 
