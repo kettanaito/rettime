@@ -57,8 +57,10 @@ emitter.on('hello', () => 1) // ✅
 emitter.on('hello', () => 'oops') // ❌ string not assignable to type number
 
 emitter.emit('hello', 'John') // ✅
-emitter.on('hello', 123) // ❌ number is not assignable to type string
-emitter.on('hello') // ❌ missing data argument of type string
+emitter.emit('hello', 123) // ❌ number is not assignable to type string
+emitter.emit('hello') // ❌ missing data argument of type string
+
+emitter.emit('unknown') // ❌ "unknown" does not satisfy "hello"
 ```
 
 ### `.on(type, listener)`
