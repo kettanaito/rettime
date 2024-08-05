@@ -8,7 +8,8 @@
   "scripts": {
     "test": "vitest",
     "benchmark": "vitest bench",
-    "build": "tsup"
+    "build": "tsup",
+    "release": "release publish"
   },
   "keywords": [
     "emitter",
@@ -21,6 +22,7 @@
   "author": "Artem Zakharchenko <me@kettanaito.com>",
   "license": "MIT",
   "devDependencies": {
+    "@ossjs/release": "^0.8.1",
     "tsup": "^8.2.4",
     "typescript": "^5.5.4",
     "vitest": "^2.0.5"
