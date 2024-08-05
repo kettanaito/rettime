@@ -41,6 +41,26 @@ npm install rettime
 
 ## API
 
+### `Emitter`
+
+```ts
+new Emitter<Events>()
+```
+
+The `Events` type argument allows you describe the supported event types, their payload, and the return type of their event listeners.
+
+```ts
+// [eventPayloadType, listenerReturnType]
+const emitter = new Emitter<{ hello: [string, number] }>()
+
+emitter.on('hello', () => 1) // ✅
+emitter.on('hello', () => 'oops') // ❌ string not assignable to type number
+
+emitter.emit('hello', 'John') // ✅
+emitter.on('hello', 123) // ❌ number is not assignable to type string
+emitter.on('hello') // ❌ missing data argument of type string
+```
+
 ### `.on(type, listener)`
 
 Adds an event listener for the given event type.
@@ -48,9 +68,7 @@ Adds an event listener for the given event type.
 ```ts
 const emitter = new Emitter<{ hello: [string] }>()
 
-emitter.on('hello', 'John') // ✅
-emitter.on('hello', 123) // ❌ number is not assignable to type string
-emitter.on('hello') // ❌ missing data argument of type string
+emitter.on('hello', (event) => {})
 ```
 
 ### `.once(type, listener)`
