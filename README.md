@@ -10,6 +10,9 @@ Yet another implementation of type-safe event emitter. This time, with a twist.
 - **Convenience methods** like `.emitAsPromise()` and `.emitAsGenerator()` to build more complex event-driven systems.
 - **Tiny**. Like, really tiny.
 
+> [!WARNING]
+> This library **does not** have performance as the end goal. In fact, since it operates on events and supports event cancellation, it will likely be slower than other emitters out there.
+
 ## API
 
 ### `.on(type, listener)`
