@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "rettime",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Type-safe dependency-free EventTarget-inspired event emitter for browser and Node.js",
   "main": "./build/index.js",
   "types": "./build/index.d.ts",
