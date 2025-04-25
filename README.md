@@ -70,7 +70,11 @@ Adds an event listener for the given event type.
 ```ts
 const emitter = new Emitter<{ hello: [string] }>()
 
-emitter.on('hello', (event) => {})
+emitter.on('hello', (event) => {
+  // `event` is a `MessageEvent` instance since the `hello` event
+  // defined `string` as its data.
+  console.log(event.data)
+})
 ```
 
 All methods that add new listeners return an `AbortController` instance bound to that listener. You can use that controller to cancel the event handling, including mid-air:
