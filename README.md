@@ -63,7 +63,7 @@ emitter.emit('hello') // ❌ missing data argument of type string
 emitter.emit('unknown') // ❌ "unknown" does not satisfy "hello"
 ```
 
-### `.on(type, listener, options)`
+### `.on(type, listener[, options])`
 
 Adds an event listener for the given event type.
 
@@ -88,11 +88,11 @@ emitter.on('hello', listener, { signal: controller.signal })
 
 > Both the public controller of the event and your custom controller are combined using `AbortSignal.any()`.
 
-### `.once(type, listener, options)`
+### `.once(type, listener[, options])`
 
 Adds a one-time event listener for the given event type.
 
-### `.earlyOn(type, listener, options)`
+### `.earlyOn(type, listener[, options])`
 
 Prepends a listener for the given event type.
 
@@ -106,7 +106,7 @@ const results = await emitter.emitAsPromise('hello')
 // [2, 1]
 ```
 
-### `.earlyOnce(type, listener, options)`
+### `.earlyOnce(type, listener[, options])`
 
 Prepends a one-time listener for the given event type.
 
