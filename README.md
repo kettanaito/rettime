@@ -172,3 +172,45 @@ Removes the event listener for the given event type.
 ### `.removeAllListeners([type])`
 
 Removes all event listeners for the given event type. If no event `type` is provided, removes all existing event listeners.
+
+## Types
+
+Apart from being strongly-typed from the ground up, the library provides you with a few helper types to annotate your own implementations.
+
+### `InferListenerType`
+
+Infers the type of the given event's listener.
+
+```ts
+import { Emitter, InferListenerType } from 'rettime'
+
+const emitter = new Emitter<{ greeting: [string] }>()
+type GreetingListener = InferListenerType<typeof emitter, 'greeting'>
+// (event: MessageEvent<string>) => void
+```
+
+> The `InferListenerType` helper is in itself type-safe, allowing only known event types as the second argument.
+
+### `InferListenerReturnType`
+
+Infers the return type of the given event's listener.
+
+```ts
+import { Emitter, GreetingListener } from 'rettime'
+
+const emitter = new Emitter<{ getTotalPrice: [Cart, number] }>()
+type CartTotal = InferListenerReturnType<typeof emitter, 'greeting'>
+// number
+```
+
+### `InferEventType`
+
+Infers the `Event` type (or its subtype) representing the given listener.
+
+```ts
+import { Emitter, InferEventType } from 'rettime'
+
+const emitter = new Emitter<{ greeting: [string] }>()
+type GreetingEvent = InferListenerType<typeof emitter, 'greeting'>
+// MessageEvent<string>
+```
