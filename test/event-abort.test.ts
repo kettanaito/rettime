@@ -1,4 +1,4 @@
-import { Emitter } from '../src'
+import { Emitter, InferListenerType } from '../src'
 
 it('(on) supports aborting a listener by calling `abort()` on its controller', () => {
   const listener = vi.fn()
