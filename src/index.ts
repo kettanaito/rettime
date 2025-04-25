@@ -254,9 +254,14 @@ export class Emitter<Events extends EventsMap> {
     const nextListeners: Array<StrictEventListener<Event>> = []
 
     for (const existingListener of this.#listeners[type]) {
-      if (existingListener !== listener) {
-        nextListeners.push(existingListener)
+      if (existingListener === listener) {
+        this.#listenerOptions.delete(existingListener)
+        this.#abortControllers.delete(existingListener)
+        this.#eventsCache.delete([type, existingListener])
+        continue
       }
+
+      nextListeners.push(existingListener)
     }
 
     this.#listeners[type] = nextListeners
@@ -271,6 +276,9 @@ export class Emitter<Events extends EventsMap> {
   ): void {
     if (type == null) {
       this.#listeners = {} as InternalListenersMap<Events>
+      this.#listenerOptions = new WeakMap()
+      this.#abortControllers = new WeakMap()
+      this.#eventsCache = new WeakMap()
       return
     }
 
