@@ -11,7 +11,7 @@ Type-safe dependency-free EventTarget-inspired event emitter for browser and Nod
 - 🐙 **Tiny**. 700B gzipped.
 
 > [!WARNING]
-> This library **does not** have performance as the end goal. In fact, since it operates on events and supports event cancellation, it will likely be slower than other emitters out there.
+> This library **does not** have performance as the end goal. In fact, since it operates on events and supports event cancellation, it will likely be _slower_ than the emitters that don't do that.
 
 ## Motivation
 
