@@ -63,7 +63,7 @@ emitter.emit('hello') // ❌ missing data argument of type string
 emitter.emit('unknown') // ❌ "unknown" does not satisfy "hello"
 ```
 
-### `.on(type, listener)`
+### `.on(type, listener, options)`
 
 Adds an event listener for the given event type.
 
@@ -73,11 +73,26 @@ const emitter = new Emitter<{ hello: [string] }>()
 emitter.on('hello', (event) => {})
 ```
 
-### `.once(type, listener)`
+All methods that add new listeners return an `AbortController` instance bound to that listener. You can use that controller to cancel the event handling, including mid-air:
+
+```ts
+const controller = emitter.on('hello', listener)
+controller.abort(reason)
+```
+
+All methods that add new listeners also accept an optional `options` argument. You can use it to configure event handling behavior. For example, you can provide an existing `AbortController` signal as the `options.signal` value so the attached listener abides by your controller:
+
+```ts
+emitter.on('hello', listener, { signal: controller.signal })
+```
+
+> Both the public controller of the event and your custom controller are combined using `AbortSignal.any()`.
+
+### `.once(type, listener, options)`
 
 Adds a one-time event listener for the given event type.
 
-### `.earlyOn(type, listener)`
+### `.earlyOn(type, listener, options)`
 
 Prepends a listener for the given event type.
 
@@ -91,7 +106,7 @@ const results = await emitter.emitAsPromise('hello')
 // [2, 1]
 ```
 
-### `.earlyOnce(type, listener)`
+### `.earlyOnce(type, listener, options)`
 
 Prepends a one-time listener for the given event type.
 
