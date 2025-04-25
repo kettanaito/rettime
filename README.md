@@ -182,10 +182,10 @@ Apart from being strongly-typed from the ground up, the library provides you wit
 Infers the type of the given event's listener.
 
 ```ts
-import { Emitter, InferListenerType } from 'rettime'
+import { Emitter } from 'rettime'
 
 const emitter = new Emitter<{ greeting: [string] }>()
-type GreetingListener = InferListenerType<typeof emitter, 'greeting'>
+type GreetingListener = Emitter.InferListenerType<typeof emitter, 'greeting'>
 // (event: MessageEvent<string>) => void
 ```
 
@@ -196,10 +196,13 @@ type GreetingListener = InferListenerType<typeof emitter, 'greeting'>
 Infers the return type of the given event's listener.
 
 ```ts
-import { Emitter, GreetingListener } from 'rettime'
+import { Emitter } from 'rettime'
 
 const emitter = new Emitter<{ getTotalPrice: [Cart, number] }>()
-type CartTotal = InferListenerReturnType<typeof emitter, 'getTotalPrice'>
+type CartTotal = Emitter.InferListenerReturnType<
+  typeof emitter,
+  'getTotalPrice'
+>
 // number
 ```
 
@@ -208,9 +211,9 @@ type CartTotal = InferListenerReturnType<typeof emitter, 'getTotalPrice'>
 Infers the `Event` type (or its subtype) representing the given listener.
 
 ```ts
-import { Emitter, InferEventType } from 'rettime'
+import { Emitter } from 'rettime'
 
 const emitter = new Emitter<{ greeting: [string] }>()
-type GreetingEvent = InferListenerType<typeof emitter, 'greeting'>
+type GreetingEvent = Emitter.InferListenerType<typeof emitter, 'greeting'>
 // MessageEvent<string>
 ```
