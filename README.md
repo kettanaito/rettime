@@ -199,7 +199,7 @@ Infers the return type of the given event's listener.
 import { Emitter, GreetingListener } from 'rettime'
 
 const emitter = new Emitter<{ getTotalPrice: [Cart, number] }>()
-type CartTotal = InferListenerReturnType<typeof emitter, 'greeting'>
+type CartTotal = InferListenerReturnType<typeof emitter, 'getTotalPrice'>
 // number
 ```
 
