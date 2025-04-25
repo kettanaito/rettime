@@ -9,7 +9,7 @@ export interface StrictEventListener<E extends globalThis.Event, R = void> {
 }
 
 type DataToEvent<Type extends string, Data extends unknown> = [Data] extends [
-  never
+  never,
 ]
   ? TypedEvent<Type>
   : MessageEvent<Data> & { type: Type }
@@ -24,17 +24,23 @@ type InternalListenersMap<Events extends EventsMap> = Record<
   >
 >
 
+type EmmiterListenerOptions = {
+  signal?: AbortSignal
+}
+
 const kPropagationStopped = Symbol('kPropagationStopped')
 
 export class Emitter<Events extends EventsMap> {
   #listeners: InternalListenersMap<Events>
   #listenerOptions: WeakMap<Function, AddEventListenerOptions>
   #eventsCache: WeakMap<[string, unknown], Event>
+  #abortControllers: WeakMap<Function, AbortController>
 
   constructor() {
     this.#listeners = {} as InternalListenersMap<Events>
     this.#listenerOptions = new WeakMap()
     this.#eventsCache = new WeakMap()
+    this.#abortControllers = new WeakMap()
   }
 
   /**
@@ -45,10 +51,19 @@ export class Emitter<Events extends EventsMap> {
     listener: StrictEventListener<
       DataToEvent<Type, Events[Type][0]>,
       Events[Type][1]
-    >
-  ): this {
+    >,
+    options?: EmmiterListenerOptions,
+  ): AbortController {
     this.#addListener(type, listener)
-    return this
+
+    const abortController = this.#createAbortController(type, listener)
+    this.#listenerOptions.set(listener, {
+      signal: options?.signal
+        ? AbortSignal.any([abortController.signal, options.signal])
+        : abortController.signal,
+    })
+
+    return abortController
   }
 
   /**
@@ -59,10 +74,20 @@ export class Emitter<Events extends EventsMap> {
     listener: StrictEventListener<
       DataToEvent<Type, Events[Type][0]>,
       Events[Type][1]
-    >
-  ): void {
+    >,
+    options?: EmmiterListenerOptions,
+  ): AbortController {
     this.#addListener(type, listener)
-    this.#listenerOptions.set(listener, { once: true })
+
+    const abortController = this.#createAbortController(type, listener)
+    this.#listenerOptions.set(listener, {
+      once: true,
+      signal: options?.signal
+        ? AbortSignal.any([abortController.signal, options.signal])
+        : abortController.signal,
+    })
+
+    return abortController
   }
 
   /**
@@ -70,14 +95,23 @@ export class Emitter<Events extends EventsMap> {
    */
   public earlyOn<Type extends keyof Events & string>(
     type: Type,
-    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
-  ): this {
+    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>,
+    options?: EmmiterListenerOptions,
+  ): AbortController {
     if (!this.#listeners[type]) {
       this.#listeners[type] = []
     }
 
     this.#listeners[type].unshift(listener)
-    return this
+
+    const abortController = this.#createAbortController(type, listener)
+    this.#listenerOptions.set(listener, {
+      signal: options?.signal
+        ? AbortSignal.any([abortController.signal, options.signal])
+        : abortController.signal,
+    })
+
+    return abortController
   }
 
   /**
@@ -85,16 +119,24 @@ export class Emitter<Events extends EventsMap> {
    */
   public earlyOnce<Type extends keyof Events & string>(
     type: Type,
-    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
-  ): this {
+    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>,
+  ): AbortController {
     this.earlyOn(type, listener)
-    this.#listenerOptions.set(listener, { once: true })
-    return this
+
+    const abortController = this.#createAbortController(type, listener)
+    this.#listenerOptions.set(listener, {
+      once: true,
+      signal: abortController.signal,
+    })
+
+    return abortController
   }
 
   /**
    * Emits the given event type. Accepts the data as the
    * second argument if the event contains data.
+   *
+   * @returns {boolean} Returns `true` if the event had any listeners, `false` otherwise.
    */
   public emit<Type extends keyof Events & string>(
     ...args: Events[Type][0] extends [never]
@@ -108,6 +150,10 @@ export class Emitter<Events extends EventsMap> {
     const event = this.#createEventForData(args[0], args[1])
 
     for (const listener of this.#listeners[args[0]]) {
+      if (this.#listenerOptions.get(listener).signal.aborted) {
+        continue
+      }
+
       if (this.#wasEventCancelled(event)) {
         break
       }
@@ -139,12 +185,16 @@ export class Emitter<Events extends EventsMap> {
     const pendingListeners: Array<Promise<unknown>> = []
 
     for (const listener of this.#listeners[args[0]]) {
+      if (this.#listenerOptions.get(listener).signal.aborted) {
+        continue
+      }
+
       if (this.#wasEventCancelled(event)) {
         break
       }
 
       pendingListeners.push(
-        await Promise.resolve(this.#callListener(listener, event))
+        await Promise.resolve(this.#callListener(listener, event)),
       )
     }
 
@@ -152,7 +202,7 @@ export class Emitter<Events extends EventsMap> {
 
     return Promise.allSettled(pendingListeners).then((results) => {
       return results.map((result) =>
-        result.status === 'fulfilled' ? result.value : result.reason
+        result.status === 'fulfilled' ? result.value : result.reason,
       )
     })
   }
@@ -174,6 +224,10 @@ export class Emitter<Events extends EventsMap> {
     const event = this.#createEventForData(args[0], args[1])
 
     for (const listener of this.#listeners[args[0]]) {
+      if (this.#listenerOptions.get(listener).signal.aborted) {
+        continue
+      }
+
       if (this.#wasEventCancelled(event)) {
         break
       }
@@ -189,7 +243,7 @@ export class Emitter<Events extends EventsMap> {
    */
   public removeListener<Type extends keyof Events & string>(
     type: Type,
-    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
+    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>,
   ): void {
     this.#listenerOptions.delete(listener)
 
@@ -213,7 +267,7 @@ export class Emitter<Events extends EventsMap> {
    * If no event type is provided, removes all existing listeners.
    */
   public removeAllListeners<Type extends keyof Events & string>(
-    type?: Type
+    type?: Type,
   ): void {
     if (type == null) {
       this.#listeners = {} as InternalListenersMap<Events>
@@ -228,7 +282,7 @@ export class Emitter<Events extends EventsMap> {
    * If no even type is provided, returns all listeners.
    */
   public listeners<Type extends keyof Events & string>(
-    type?: Type
+    type?: Type,
   ): Array<StrictEventListener<DataToEvent<Type, Events[Type]>>> {
     if (type == null) {
       return Object.values(this.#listeners).flat()
@@ -242,14 +296,14 @@ export class Emitter<Events extends EventsMap> {
    * If no even type is provided, returns the total number of listeners.
    */
   public listenerCount<Type extends keyof Events & string>(
-    type?: Type
+    type?: Type,
   ): number {
     return this.listeners(type).length
   }
 
   #addListener<Type extends keyof Events & string>(
     type: Type,
-    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>
+    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>,
   ) {
     if (!this.#listeners[type]) {
       this.#listeners[type] = []
@@ -260,7 +314,7 @@ export class Emitter<Events extends EventsMap> {
 
   #createEventForData<Type extends keyof Events & string>(
     type: Type,
-    data: Events[Type][0]
+    data: Events[Type][0],
   ): Event {
     const cachedEvent = this.#eventsCache.get([type, data])
 
@@ -311,5 +365,21 @@ export class Emitter<Events extends EventsMap> {
     }
 
     return listenerResult
+  }
+
+  #createAbortController<Type extends keyof EventsMap & string>(
+    type: Type,
+    listener: StrictEventListener<Event>,
+  ): AbortController {
+    const abortController = new AbortController()
+
+    // Since we are emitting events manually, aborting the controller
+    // won't do anything by itself. We need to teach the class what to do.
+    abortController.signal.addEventListener('abort', () => {
+      this.removeListener(type, listener)
+    })
+
+    this.#abortControllers.set(listener, abortController)
+    return abortController
   }
 }
