@@ -1,12 +1,24 @@
-export type EventsMap = {
+export type DefaultEventMap = {
   [type: string]: [payload: unknown, listenerResult?: unknown]
 }
 
 type TypedEvent<T extends string> = Event & { type: T }
 
-export interface StrictEventListener<E extends globalThis.Event, R = void> {
-  (event: E): [R] extends [undefined] ? void : R
+interface StrictEventListener<Event extends globalThis.Event, R = void> {
+  (event: Event): [R] extends [undefined] ? void : R
 }
+
+/**
+ * Infers the listener type for the given event type.
+ *
+ * @example
+ * type Fn = InferListenerType<typeof myEmitter, 'event-name'>
+ */
+export type InferListenerType<
+  E extends Emitter<any>,
+  Type extends keyof Events & string,
+  Events extends DefaultEventMap = E extends Emitter<infer T> ? T : never,
+> = StrictEventListener<DataToEvent<Type, Events[Type][0]>, Events[Type][1]>
 
 type DataToEvent<Type extends string, Data extends unknown> = [Data] extends [
   never,
@@ -14,12 +26,12 @@ type DataToEvent<Type extends string, Data extends unknown> = [Data] extends [
   ? TypedEvent<Type>
   : MessageEvent<Data> & { type: Type }
 
-type InternalListenersMap<Events extends EventsMap> = Record<
-  keyof Events,
+type InternalListenersMap<EventMap extends DefaultEventMap> = Record<
+  keyof EventMap,
   Array<
     StrictEventListener<
-      DataToEvent<keyof Events & string, Events[keyof Events][0]>,
-      Events[keyof Events][1]
+      DataToEvent<keyof EventMap & string, EventMap[keyof EventMap][0]>,
+      EventMap[keyof EventMap][1]
     >
   >
 >
@@ -30,14 +42,14 @@ type EmmiterListenerOptions = {
 
 const kPropagationStopped = Symbol('kPropagationStopped')
 
-export class Emitter<Events extends EventsMap> {
-  #listeners: InternalListenersMap<Events>
+export class Emitter<EventMap extends DefaultEventMap> {
+  #listeners: InternalListenersMap<EventMap>
   #listenerOptions: WeakMap<Function, AddEventListenerOptions>
   #eventsCache: WeakMap<[string, unknown], Event>
   #abortControllers: WeakMap<Function, AbortController>
 
   constructor() {
-    this.#listeners = {} as InternalListenersMap<Events>
+    this.#listeners = {} as InternalListenersMap<EventMap>
     this.#listenerOptions = new WeakMap()
     this.#eventsCache = new WeakMap()
     this.#abortControllers = new WeakMap()
@@ -46,12 +58,9 @@ export class Emitter<Events extends EventsMap> {
   /**
    * Adds a listener for the given event type.
    */
-  public on<Type extends keyof Events & string>(
+  public on<Type extends keyof EventMap & string>(
     type: Type,
-    listener: StrictEventListener<
-      DataToEvent<Type, Events[Type][0]>,
-      Events[Type][1]
-    >,
+    listener: InferListenerType<typeof this, Type>,
     options?: EmmiterListenerOptions,
   ): AbortController {
     this.#addListener(type, listener)
@@ -69,12 +78,9 @@ export class Emitter<Events extends EventsMap> {
   /**
    * Adds a one-time listener for the given event type.
    */
-  public once<Type extends keyof Events & string>(
+  public once<Type extends keyof EventMap & string>(
     type: Type,
-    listener: StrictEventListener<
-      DataToEvent<Type, Events[Type][0]>,
-      Events[Type][1]
-    >,
+    listener: InferListenerType<typeof this, Type>,
     options?: EmmiterListenerOptions,
   ): AbortController {
     this.#addListener(type, listener)
@@ -93,9 +99,9 @@ export class Emitter<Events extends EventsMap> {
   /**
    * Prepends a listener for the given event type.
    */
-  public earlyOn<Type extends keyof Events & string>(
+  public earlyOn<Type extends keyof EventMap & string>(
     type: Type,
-    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>,
+    listener: InferListenerType<typeof this, Type>,
     options?: EmmiterListenerOptions,
   ): AbortController {
     if (!this.#listeners[type]) {
@@ -117,9 +123,9 @@ export class Emitter<Events extends EventsMap> {
   /**
    * Prepends a one-time listener for the given event type.
    */
-  public earlyOnce<Type extends keyof Events & string>(
+  public earlyOnce<Type extends keyof EventMap & string>(
     type: Type,
-    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>,
+    listener: InferListenerType<typeof this, Type>,
   ): AbortController {
     this.earlyOn(type, listener)
 
@@ -138,10 +144,10 @@ export class Emitter<Events extends EventsMap> {
    *
    * @returns {boolean} Returns `true` if the event had any listeners, `false` otherwise.
    */
-  public emit<Type extends keyof Events & string>(
-    ...args: Events[Type][0] extends [never]
+  public emit<Type extends keyof EventMap & string>(
+    ...args: EventMap[Type][0] extends [never]
       ? [type: Type]
-      : [type: Type, data: Events[Type][0]]
+      : [type: Type, data: EventMap[Type][0]]
   ): boolean {
     if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
       return false
@@ -172,10 +178,10 @@ export class Emitter<Events extends EventsMap> {
    * of the listeners throw. Listeners are still called synchronously
    * to guarantee call order and prevent race conditions.
    */
-  public async emitAsPromise<Type extends keyof Events & string>(
-    ...args: Events[Type][0] extends [never]
+  public async emitAsPromise<Type extends keyof EventMap & string>(
+    ...args: EventMap[Type][0] extends [never]
       ? [type: Type]
-      : [type: Type, data: Events[Type][0]]
+      : [type: Type, data: EventMap[Type][0]]
   ): Promise<Array<unknown>> {
     if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
       return []
@@ -212,10 +218,10 @@ export class Emitter<Events extends EventsMap> {
    * the result of each listener. This way, you stop exhausting
    * the listeners once you get the expected value.
    */
-  public *emitAsGenerator<Type extends keyof Events & string>(
-    ...args: Events[Type][0] extends [never]
+  public *emitAsGenerator<Type extends keyof EventMap & string>(
+    ...args: EventMap[Type][0] extends [never]
       ? [type: Type]
-      : [type: Type, data: Events[Type][0]]
+      : [type: Type, data: EventMap[Type][0]]
   ): Generator<unknown> {
     if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
       return
@@ -241,9 +247,9 @@ export class Emitter<Events extends EventsMap> {
   /**
    * Removes the given listener.
    */
-  public removeListener<Type extends keyof Events & string>(
+  public removeListener<Type extends keyof EventMap & string>(
     type: Type,
-    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>,
+    listener: InferListenerType<typeof this, Type>,
   ): void {
     this.#listenerOptions.delete(listener)
 
@@ -271,11 +277,11 @@ export class Emitter<Events extends EventsMap> {
    * Removes all listeners for the given event type.
    * If no event type is provided, removes all existing listeners.
    */
-  public removeAllListeners<Type extends keyof Events & string>(
+  public removeAllListeners<Type extends keyof EventMap & string>(
     type?: Type,
   ): void {
     if (type == null) {
-      this.#listeners = {} as InternalListenersMap<Events>
+      this.#listeners = {} as InternalListenersMap<EventMap>
       this.#listenerOptions = new WeakMap()
       this.#abortControllers = new WeakMap()
       this.#eventsCache = new WeakMap()
@@ -289,9 +295,9 @@ export class Emitter<Events extends EventsMap> {
    * Returns the list of listeners for the given event type.
    * If no even type is provided, returns all listeners.
    */
-  public listeners<Type extends keyof Events & string>(
+  public listeners<Type extends keyof EventMap & string>(
     type?: Type,
-  ): Array<StrictEventListener<DataToEvent<Type, Events[Type]>>> {
+  ): Array<InferListenerType<typeof this, Type>> {
     if (type == null) {
       return Object.values(this.#listeners).flat()
     }
@@ -303,15 +309,15 @@ export class Emitter<Events extends EventsMap> {
    * Returns the number of listeners for the given event type.
    * If no even type is provided, returns the total number of listeners.
    */
-  public listenerCount<Type extends keyof Events & string>(
+  public listenerCount<Type extends keyof EventMap & string>(
     type?: Type,
   ): number {
     return this.listeners(type).length
   }
 
-  #addListener<Type extends keyof Events & string>(
+  #addListener<Type extends keyof EventMap & string>(
     type: Type,
-    listener: StrictEventListener<DataToEvent<Type, Events[Type]>>,
+    listener: InferListenerType<typeof this, Type>,
   ) {
     if (!this.#listeners[type]) {
       this.#listeners[type] = []
@@ -320,9 +326,9 @@ export class Emitter<Events extends EventsMap> {
     this.#listeners[type].push(listener)
   }
 
-  #createEventForData<Type extends keyof Events & string>(
+  #createEventForData<Type extends keyof EventMap & string>(
     type: Type,
-    data: Events[Type][0],
+    data: EventMap[Type][0],
   ): Event {
     const cachedEvent = this.#eventsCache.get([type, data])
 
@@ -375,9 +381,9 @@ export class Emitter<Events extends EventsMap> {
     return listenerResult
   }
 
-  #createAbortController<Type extends keyof EventsMap & string>(
+  #createAbortController<Type extends keyof EventMap & string>(
     type: Type,
-    listener: StrictEventListener<Event>,
+    listener: InferListenerType<typeof this, Type>,
   ): AbortController {
     const abortController = new AbortController()
 
