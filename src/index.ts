@@ -4,21 +4,63 @@ export type DefaultEventMap = {
 
 type TypedEvent<T extends string> = Event & { type: T }
 
-interface StrictEventListener<Event extends globalThis.Event, R = void> {
-  (event: Event): [R] extends [undefined] ? void : R
+interface StrictEventListener<
+  Event extends globalThis.Event,
+  ReturnType = void,
+> {
+  (event: Event): [ReturnType] extends [undefined] ? void : ReturnType
 }
+
+type InferEventMap<Target extends Emitter<any>> = Target extends Emitter<
+  infer T
+>
+  ? T
+  : never
 
 /**
  * Infers the listener type for the given event type.
  *
  * @example
- * type Fn = InferListenerType<typeof myEmitter, 'event-name'>
+ * const emitter = new Emitter<{ getTotalPrice: [Cart, number] }>()
+ * type Listener = InferListenerType<typeof emitter, 'getTotalPrice'>
+ * // (event: MessageEvent<Cart>) => number
  */
 export type InferListenerType<
-  E extends Emitter<any>,
-  Type extends keyof Events & string,
-  Events extends DefaultEventMap = E extends Emitter<infer T> ? T : never,
-> = StrictEventListener<DataToEvent<Type, Events[Type][0]>, Events[Type][1]>
+  Target extends Emitter<any>,
+  Type extends keyof EventMap & string,
+  EventMap extends DefaultEventMap = InferEventMap<Target>,
+> = StrictEventListener<
+  InferEventType<Target, Type, EventMap>,
+  InferListenerReturnType<Target, Type, EventMap>
+>
+
+/**
+ * Infers the return type of the listener for the given event type.
+ *
+ * @example
+ * const emitter = new Emitter<{ getTotalPrice: [Cart, number] }>()
+ * type ListenerReturnType = InferListenerReturnType<typeof emitter, 'getTotalPrice'>
+ * // number
+ */
+export type InferListenerReturnType<
+  Target extends Emitter<any>,
+  Type extends keyof EventMap & string,
+  EventMap extends DefaultEventMap = InferEventMap<Target>,
+> = EventMap[Type][1]
+
+/**
+ * Infers an appropriate `Event` type for the given event type.
+ *
+ * @example
+ * const emitter = new Emitter<{ greeting: [string] }>()
+ * type GreetingEvent = InferEventType<typeof emitter, 'greeting'>
+ * // MessageEvent<string>
+ */
+export type InferEventType<
+  Target extends Emitter<any>,
+  Type extends keyof EventMap & string,
+  EventMap extends DefaultEventMap = InferEventMap<Target>,
+> = DataToEvent<Type, EventMap[Type][0]>
 
 type DataToEvent<Type extends string, Data extends unknown> = [Data] extends [
   never,
@@ -26,12 +68,15 @@ type DataToEvent<Type extends string, Data extends unknown> = [Data] extends [
   ? TypedEvent<Type>
   : MessageEvent<Data> & { type: Type }
 
-type InternalListenersMap<EventMap extends DefaultEventMap> = Record<
+type InternalListenersMap<
+  Target extends Emitter<any>,
+  EventMap extends DefaultEventMap = InferEventMap<Target>,
+> = Record<
   keyof EventMap,
   Array<
     StrictEventListener<
-      DataToEvent<keyof EventMap & string, EventMap[keyof EventMap][0]>,
-      EventMap[keyof EventMap][1]
+      InferEventType<Target, keyof EventMap & string, EventMap>,
+      InferListenerReturnType<Target, keyof EventMap & string, EventMap>
     >
   >
 >
@@ -43,13 +88,13 @@ type EmmiterListenerOptions = {
 const kPropagationStopped = Symbol('kPropagationStopped')
 
 export class Emitter<EventMap extends DefaultEventMap> {
-  #listeners: InternalListenersMap<EventMap>
+  #listeners: InternalListenersMap<typeof this, EventMap>
   #listenerOptions: WeakMap<Function, AddEventListenerOptions>
   #eventsCache: WeakMap<[string, unknown], Event>
   #abortControllers: WeakMap<Function, AbortController>
 
   constructor() {
-    this.#listeners = {} as InternalListenersMap<EventMap>
+    this.#listeners = {} as InternalListenersMap<typeof this>
     this.#listenerOptions = new WeakMap()
     this.#eventsCache = new WeakMap()
     this.#abortControllers = new WeakMap()
@@ -281,7 +326,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
     type?: Type,
   ): void {
     if (type == null) {
-      this.#listeners = {} as InternalListenersMap<EventMap>
+      this.#listeners = {} as InternalListenersMap<typeof this>
       this.#listenerOptions = new WeakMap()
       this.#abortControllers = new WeakMap()
       this.#eventsCache = new WeakMap()
