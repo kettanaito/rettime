@@ -177,43 +177,40 @@ Removes all event listeners for the given event type. If no event `type` is prov
 
 Apart from being strongly-typed from the ground up, the library provides you with a few helper types to annotate your own implementations.
 
-### `InferListenerType`
+### `ListenerType`
 
-Infers the type of the given event's listener.
+Returns the type of the given event's listener.
 
 ```ts
 import { Emitter } from 'rettime'
 
 const emitter = new Emitter<{ greeting: [string] }>()
-type GreetingListener = Emitter.InferListenerType<typeof emitter, 'greeting'>
+type GreetingListener = Emitter.ListenerType<typeof emitter, 'greeting'>
 // (event: MessageEvent<string>) => void
 ```
 
-> The `InferListenerType` helper is in itself type-safe, allowing only known event types as the second argument.
+> The `ListenerType` helper is in itself type-safe, allowing only known event types as the second argument.
 
-### `InferListenerReturnType`
+### `ListenerReturnType`
 
-Infers the return type of the given event's listener.
+Returns the return type of the given event's listener.
 
 ```ts
 import { Emitter } from 'rettime'
 
 const emitter = new Emitter<{ getTotalPrice: [Cart, number] }>()
-type CartTotal = Emitter.InferListenerReturnType<
-  typeof emitter,
-  'getTotalPrice'
->
+type CartTotal = Emitter.ListenerReturnType<typeof emitter, 'getTotalPrice'>
 // number
 ```
 
-### `InferEventType`
+### `EventType`
 
-Infers the `Event` type (or its subtype) representing the given listener.
+Returns the `Event` type (or its subtype) representing the given listener.
 
 ```ts
 import { Emitter } from 'rettime'
 
 const emitter = new Emitter<{ greeting: [string] }>()
-type GreetingEvent = Emitter.InferListenerType<typeof emitter, 'greeting'>
+type GreetingEvent = Emitter.EventType<typeof emitter, 'greeting'>
 // MessageEvent<string>
 ```

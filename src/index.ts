@@ -30,8 +30,8 @@ type InternalListenersMap<
   keyof EventMap,
   Array<
     StrictEventListener<
-      Emitter.InferEventType<Target, keyof EventMap & string, EventMap>,
-      Emitter.InferListenerReturnType<Target, keyof EventMap & string, EventMap>
+      Emitter.EventType<Target, keyof EventMap & string, EventMap>,
+      Emitter.ListenerReturnType<Target, keyof EventMap & string, EventMap>
     >
   >
 >
@@ -48,16 +48,16 @@ export namespace Emitter {
    *
    * @example
    * const emitter = new Emitter<{ getTotalPrice: [Cart, number] }>()
-   * type Listener = InferListenerType<typeof emitter, 'getTotalPrice'>
+   * type Listener = ListenerType<typeof emitter, 'getTotalPrice'>
    * // (event: MessageEvent<Cart>) => number
    */
-  export type InferListenerType<
+  export type ListenerType<
     Target extends Emitter<any>,
     Type extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
   > = StrictEventListener<
-    InferEventType<Target, Type, EventMap>,
-    InferListenerReturnType<Target, Type, EventMap>
+    Emitter.EventType<Target, Type, EventMap>,
+    Emitter.ListenerReturnType<Target, Type, EventMap>
   >
 
   /**
@@ -68,7 +68,7 @@ export namespace Emitter {
    * type ListenerReturnType = InferListenerReturnType<typeof emitter, 'getTotalPrice'>
    * // number
    */
-  export type InferListenerReturnType<
+  export type ListenerReturnType<
     Target extends Emitter<any>,
     Type extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
@@ -82,7 +82,7 @@ export namespace Emitter {
    * type GreetingEvent = InferEventType<typeof emitter, 'greeting'>
    * // MessageEvent<string>
    */
-  export type InferEventType<
+  export type EventType<
     Target extends Emitter<any>,
     Type extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
@@ -107,7 +107,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    */
   public on<Type extends keyof EventMap & string>(
     type: Type,
-    listener: Emitter.InferListenerType<typeof this, Type, EventMap>,
+    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
     options?: EmmiterListenerOptions,
   ): AbortController {
     this.#addListener(type, listener)
@@ -127,7 +127,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    */
   public once<Type extends keyof EventMap & string>(
     type: Type,
-    listener: Emitter.InferListenerType<typeof this, Type, EventMap>,
+    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
     options?: EmmiterListenerOptions,
   ): AbortController {
     this.#addListener(type, listener)
@@ -148,7 +148,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    */
   public earlyOn<Type extends keyof EventMap & string>(
     type: Type,
-    listener: Emitter.InferListenerType<typeof this, Type, EventMap>,
+    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
     options?: EmmiterListenerOptions,
   ): AbortController {
     if (!this.#listeners[type]) {
@@ -172,7 +172,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    */
   public earlyOnce<Type extends keyof EventMap & string>(
     type: Type,
-    listener: Emitter.InferListenerType<typeof this, Type, EventMap>,
+    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
   ): AbortController {
     this.earlyOn(type, listener)
 
@@ -296,7 +296,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    */
   public removeListener<Type extends keyof EventMap & string>(
     type: Type,
-    listener: Emitter.InferListenerType<typeof this, Type, EventMap>,
+    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
   ): void {
     this.#listenerOptions.delete(listener)
 
@@ -344,7 +344,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    */
   public listeners<Type extends keyof EventMap & string>(
     type?: Type,
-  ): Array<Emitter.InferListenerType<typeof this, Type, EventMap>> {
+  ): Array<Emitter.ListenerType<typeof this, Type, EventMap>> {
     if (type == null) {
       return Object.values(this.#listeners).flat()
     }
@@ -364,7 +364,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
   #addListener<Type extends keyof EventMap & string>(
     type: Type,
-    listener: Emitter.InferListenerType<typeof this, Type, EventMap>,
+    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
   ) {
     if (!this.#listeners[type]) {
       this.#listeners[type] = []
@@ -430,7 +430,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
   #createAbortController<Type extends keyof EventMap & string>(
     type: Type,
-    listener: Emitter.InferListenerType<typeof this, Type, EventMap>,
+    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
   ): AbortController {
     const abortController = new AbortController()
 
