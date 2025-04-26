@@ -273,7 +273,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
     ...args: EventMap[Type][0] extends [never]
       ? [type: Type]
       : [type: Type, data: EventMap[Type][0]]
-  ): Generator<unknown> {
+  ): Generator<Emitter.ListenerReturnType<typeof this, Type, EventMap>> {
     if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
       return
     }
