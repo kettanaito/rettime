@@ -177,6 +177,19 @@ Removes the event listener for the given event type.
 
 Removes all event listeners for the given event type. If no event `type` is provided, removes all existing event listeners.
 
+### `.createEvent(type[, data])`
+
+Creates a strongly-typed `Event` instance for the given `type`. Optionally, accepts `data` if the event type describes one.
+
+```ts
+const emitter = new Emitter<{ greet: [string]; ping: [never] }>()
+
+const greetEvent = emitter.createEvent('greet', 'John')
+const pingEvent = emitter.createEvent('ping')
+```
+
+> The `.createEvent()` method is primarily meant for creating event instances that are _going to be reused across different emitters_. That is handy if you want to implement `event.stopPropagation()` in your event flow since that requires a single event shared between multiple emitters.
+
 ## Types
 
 Apart from being strongly-typed from the ground up, the library provides you with a few helper types to annotate your own implementations.
