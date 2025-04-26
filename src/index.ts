@@ -393,8 +393,6 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
     type: Type,
     listener: Emitter.ListenerType<typeof this, Type, EventMap>,
   ): void {
-    this.#listenerOptions.delete(listener)
-
     if (!this.#listeners[type]) {
       return
     }
