@@ -44,7 +44,7 @@ const kPropagationStopped = Symbol('kPropagationStopped')
 
 export namespace Emitter {
   /**
-   * Infers the listener type for the given event type.
+   * Returns the listener type for the given event type.
    *
    * @example
    * const emitter = new Emitter<{ getTotalPrice: [Cart, number] }>()
@@ -61,7 +61,7 @@ export namespace Emitter {
   >
 
   /**
-   * Infers the return type of the listener for the given event type.
+   * Returns the return type of the listener for the given event type.
    *
    * @example
    * const emitter = new Emitter<{ getTotalPrice: [Cart, number] }>()
@@ -75,7 +75,7 @@ export namespace Emitter {
   > = EventMap[Type][1]
 
   /**
-   * Infers an appropriate `Event` type for the given event type.
+   * Returns an appropriate `Event` type for the given event type.
    *
    * @example
    * const emitter = new Emitter<{ greeting: [string] }>()
