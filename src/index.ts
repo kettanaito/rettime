@@ -493,6 +493,26 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
         : (new MessageEvent(type, { data, cancelable: true }) as EmitterEvent)
 
     Object.defineProperties(event, {
+      defaultPrevented: {
+        enumerable: false,
+        writable: true,
+        value: false,
+      },
+      preventDefault: {
+        enumerable: false,
+        value: new Proxy(event.preventDefault, {
+          apply: (target, thisArg, argArray) => {
+            /**
+             * @note Node.js 18 does NOT update the `defaultPrevented` value
+             * when you call `preventDefault()`. This is a bug in Node.js.
+             *
+             * @fixme Remove this hack when Node.js 20 is the minimal version.
+             */
+            Reflect.set(event, 'defaultPrevented', true)
+            return Reflect.apply(target, thisArg, argArray)
+          },
+        }),
+      },
       stopPropagation: {
         enumerable: false,
         value: new Proxy(event.stopPropagation, {
