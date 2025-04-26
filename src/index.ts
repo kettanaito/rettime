@@ -228,14 +228,16 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
       return false
     }
 
-    const event = isEvent ? eventOrType : this.createEvent(type, data)
+    const event = isEvent
+      ? eventOrType
+      : this.createEvent.call(this, type, data)
 
     for (const listener of this.#listeners[type]) {
       if (
         event[kPropagationStopped] != null &&
-        event[kPropagationStopped] !== listener
+        event[kPropagationStopped] !== this
       ) {
-        break
+        return false
       }
 
       if (event[kImmediatePropagationStopped]) {
@@ -287,7 +289,10 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
       return []
     }
 
-    const event = isEvent ? eventOrType : this.createEvent(type, data)
+    const event = isEvent
+      ? eventOrType
+      : this.createEvent.call(this, type, data)
+
     const pendingListeners: Array<
       Promise<Emitter.ListenerReturnType<typeof this, Type, EventMap>>
     > = []
@@ -295,9 +300,9 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
     for (const listener of this.#listeners[type]) {
       if (
         event[kPropagationStopped] != null &&
-        event[kPropagationStopped] !== listener
+        event[kPropagationStopped] !== this
       ) {
-        break
+        return []
       }
 
       if (event[kImmediatePropagationStopped]) {
@@ -355,14 +360,16 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
       return
     }
 
-    const event = isEvent ? eventOrType : this.createEvent(type, args[1])
+    const event = isEvent
+      ? eventOrType
+      : this.createEvent.call(this, type, data)
 
     for (const listener of this.#listeners[type]) {
       if (
         event[kPropagationStopped] != null &&
-        event[kPropagationStopped] !== listener
+        event[kPropagationStopped] !== this
       ) {
-        break
+        return
       }
 
       if (event[kImmediatePropagationStopped]) {
@@ -376,7 +383,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
       yield this.#callListener(listener, event)
     }
 
-    this.#eventsCache.delete([type, args[1]])
+    this.#eventsCache.delete([type, data])
   }
 
   /**
@@ -463,11 +470,17 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
 
   public createEvent<
     Type extends keyof EventMap & string,
-    EmitterEvent extends Emitter.EventType<typeof this, Type, EventMap>,
+    EmitterEvent extends Emitter.EventType<
+      typeof this,
+      Type,
+      EventMap
+    > = Emitter.EventType<typeof this, Type, EventMap>,
   >(
-    type: Type,
-    data: Emitter.EventDataType<typeof this, Type, EventMap>,
+    ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
+      ? [type: Type]
+      : [type: Type, data: Emitter.EventDataType<typeof this, Type, EventMap>]
   ): EmitterEvent {
+    const [type, data] = args
     const cachedEvent = this.#eventsCache.get([type, data])
 
     if (cachedEvent) {
@@ -483,8 +496,13 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
       stopPropagation: {
         enumerable: false,
         value: new Proxy(event.stopPropagation, {
-          apply(target, thisArg, argArray) {
-            event[kPropagationStopped] = thisArg
+          apply: (target, thisArg, argArray) => {
+            /**
+             * @note Propagation is also stopped when the immediate propagation is stopped.
+             * Because of that, store the reference to the Emitter instance that stopped it.
+             * (Node.js makes `thisArg` to be the `Event` that stops it).
+             */
+            event[kPropagationStopped] = this
             return Reflect.apply(target, thisArg, argArray)
           },
         }),
