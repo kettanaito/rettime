@@ -126,6 +126,8 @@ emitter.on('hello', (event) => console.log(event.data))
 emitter.emit('hello', 'John')
 ```
 
+All event emission methods also support a typed event instance as an agument. Learn more in the `.createEvent()` section below.
+
 ### `.emitAsPromise(type[, data])`
 
 Emits the given event with optional data, and returns a Promise that resolves with the returned data of all matching event listeners, or rejects whenever any of the matching event listeners throws an error.
@@ -189,6 +191,13 @@ const pingEvent = emitter.createEvent('ping')
 ```
 
 > The `.createEvent()` method is primarily meant for creating event instances that are _going to be reused across different emitters_. That is handy if you want to implement `event.stopPropagation()` in your event flow since that requires a single event shared between multiple emitters.
+
+You can pass a typed event to the `.emit()` method of any `Emitter` to be emitted:
+
+```ts
+const greetEvent = emitter.createEvent('greet', 'John')
+emitter.emit(greetEvent)
+```
 
 ## Types
 
