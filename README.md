@@ -192,11 +192,14 @@ const pingEvent = emitter.createEvent('ping')
 
 > The `.createEvent()` method is primarily meant for creating event instances that are _going to be reused across different emitters_. That is handy if you want to implement `event.stopPropagation()` in your event flow since that requires a single event shared between multiple emitters.
 
-You can pass a typed event to the `.emit()` method of any `Emitter` to be emitted:
+You can pass a typed event to any event emission method of any `Emitter` to be emitted:
 
 ```ts
 const greetEvent = emitter.createEvent('greet', 'John')
+
 emitter.emit(greetEvent)
+await emitter.emitAsPromise(greetEvent)
+emitter.emitAsGenerator(greetEvent)
 ```
 
 ## Types
