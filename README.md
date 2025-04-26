@@ -63,6 +63,42 @@ emitter.emit('hello') // ❌ missing data argument of type string
 emitter.emit('unknown') // ❌ "unknown" does not satisfy "hello"
 ```
 
+#### Describing types
+
+The `Emitter` class requires a type argument that describes the event map. If you do not provide that argument, adding listeners or emitting events will produce a type error as your emitter doesn't have an event map defined.
+
+An event map is an object of the following shape:
+
+```ts
+{
+  [type: string]: [args: unknown, returnValue?: unknown]
+}
+```
+
+The `type` is a string indicating the event type (e.g. `greet` or `ping`). The array it accepts has two members: `args` describes the arguments accepted by this event (can also be `never` for events without arguments) and `returnValue` is an optional type for the data returned from the listeners for this event.
+
+Let's say you want to define a `greet` event that expects a name as an argument:
+
+```ts
+const emitter = new Emitter<{ greet: [name: string] }>()
+emitter.on('greet', (event) => {
+  console.log(`Hello, ${event.data}!`)
+})
+emitter.emit('greet', 'John')
+// "Hello, John!"
+```
+
+> Notice that you can use labeled array member types for clarity.
+
+Here's another example where we define a `ping` event that has no arguments but returns a timestamp for each ping:
+
+```ts
+const emitter = new Emitter<{ ping: [never, number] }>()
+emitter.on('ping', () => Date.now())
+const results = await emitter.emitAsPromise('ping')
+// [1745658424732]
+```
+
 ### `.on(type, listener[, options])`
 
 Adds an event listener for the given event type.
