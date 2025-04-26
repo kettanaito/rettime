@@ -181,6 +181,8 @@ const values = await emitter.emitAsPromise('hello', 1)
 // [2, 3]
 ```
 
+> Unlike `.emit()`, the `.emitAsPromise()` method _awaits asynchronous listeners_.
+
 ### `.emitAsGenerator(type[, data])`
 
 Emits the given event with optional data, and returns a generator function that exhausts all matching event listeners. Using a generator gives you granular control over what listeners are called.
