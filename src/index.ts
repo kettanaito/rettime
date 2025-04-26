@@ -41,6 +41,7 @@ type EmmiterListenerOptions = {
 }
 
 const kPropagationStopped = Symbol('kPropagationStopped')
+const kImmediatePropagationStopped = Symbol('kImmediatePropagationStopped')
 
 export namespace Emitter {
   /**
@@ -89,7 +90,7 @@ export namespace Emitter {
   > = DataToEvent<Type, EventMap[Type][0]>
 }
 
-export class Emitter<EventMap extends DefaultEventMap> {
+export class Emitter<EventMap extends DefaultEventMap = {}> {
   #listeners: InternalListenersMap<typeof this, EventMap>
   #listenerOptions: WeakMap<Function, AddEventListenerOptions>
   #eventsCache: WeakMap<[string, unknown], Event>
@@ -210,7 +211,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
         continue
       }
 
-      if (this.#wasEventCancelled(event)) {
+      if (event[kImmediatePropagationStopped]) {
         break
       }
 
@@ -232,7 +233,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
     ...args: EventMap[Type][0] extends [never]
       ? [type: Type]
       : [type: Type, data: EventMap[Type][0]]
-  ): Promise<Array<unknown>> {
+  ): Promise<Array<Emitter.ListenerReturnType<typeof this, Type, EventMap>>> {
     if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
       return []
     }
@@ -245,7 +246,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
         continue
       }
 
-      if (this.#wasEventCancelled(event)) {
+      if (event[kImmediatePropagationStopped]) {
         break
       }
 
@@ -284,7 +285,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
         continue
       }
 
-      if (this.#wasEventCancelled(event)) {
+      if (event[kImmediatePropagationStopped]) {
         break
       }
 
@@ -405,7 +406,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
         enumerable: false,
         value: new Proxy(event.stopImmediatePropagation, {
           apply(target, thisArg, argArray) {
-            event[kPropagationStopped] = true
+            event[kImmediatePropagationStopped] = true
             return Reflect.apply(target, thisArg, argArray)
           },
         }),
@@ -415,10 +416,6 @@ export class Emitter<EventMap extends DefaultEventMap> {
     this.#eventsCache.set([type, data], event)
 
     return event
-  }
-
-  #wasEventCancelled(event: Event): boolean {
-    return event.defaultPrevented || event[kPropagationStopped]
   }
 
   #callListener(listener: StrictEventListener<Event>, event: Event) {
