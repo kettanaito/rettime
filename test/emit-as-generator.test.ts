@@ -35,15 +35,15 @@ it('supports async generators as listeners', async () => {
   emitter.on('hello', listenerTwo)
   const result = emitter.emitAsGenerator('hello')
 
-  expect(result.next().value).resolves.toBe(1)
+  await expect(result.next().value).resolves.toBe(1)
   expect(listenerOne).toHaveBeenCalledTimes(1)
   expect(listenerTwo).not.toHaveBeenCalled()
 
-  expect(result.next().value).resolves.toBe(2)
+  await expect(result.next().value).resolves.toBe(2)
   expect(listenerOne).toHaveBeenCalledTimes(1)
   expect(listenerTwo).toHaveBeenCalledTimes(1)
 
-  expect(result.next()).toEqual({ done: true, value: undefined })
+  await expect(result.next()).toEqual({ done: true, value: undefined })
   expect(listenerOne).toHaveBeenCalledTimes(1)
   expect(listenerTwo).toHaveBeenCalledTimes(1)
 })

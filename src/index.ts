@@ -173,13 +173,16 @@ export class Emitter<EventMap extends DefaultEventMap> {
   public earlyOnce<Type extends keyof EventMap & string>(
     type: Type,
     listener: Emitter.ListenerType<typeof this, Type, EventMap>,
+    options?: EmmiterListenerOptions,
   ): AbortController {
     this.earlyOn(type, listener)
 
     const abortController = this.#createAbortController(type, listener)
     this.#listenerOptions.set(listener, {
       once: true,
-      signal: abortController.signal,
+      signal: options?.signal
+        ? AbortSignal.any([abortController.signal, options.signal])
+        : abortController.signal,
     })
 
     return abortController
