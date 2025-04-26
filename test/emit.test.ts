@@ -20,7 +20,7 @@ it('emits event with data', () => {
   expect(hasListeners).toBe(true)
   expect(listener).toHaveBeenCalledTimes(1)
   expect(listener).toHaveBeenCalledWith(
-    new MessageEvent('hello', { data: 'world' })
+    new MessageEvent('hello', { data: 'world' }),
   )
 })
 
@@ -64,28 +64,37 @@ it('removes the one-time listener after it has been called', () => {
   expect(listener).not.toHaveBeenCalled()
 })
 
-it('stops calling listeners if event default is prevented', () => {
+it('stops calling listeners if the immediate propagation is stopped', () => {
   const emitter = new Emitter<{ hello: [never] }>()
-  const listenerOne = vi.fn((event: Event) => event.preventDefault())
+  const listenerOne = vi.fn((event: Event) => {
+    event.stopImmediatePropagation()
+  })
   const listenerTwo = vi.fn()
   emitter.on('hello', listenerOne)
   emitter.on('hello', listenerTwo)
-  const hasListeners = emitter.emit('hello')
 
-  expect(hasListeners).toBe(true)
+  expect(emitter.emit('hello')).toBe(true)
   expect(listenerOne).toHaveBeenCalledTimes(1)
   expect(listenerTwo).not.toHaveBeenCalled()
 })
 
-it('stops calling listeners if event propagation is stopped', () => {
-  const emitter = new Emitter<{ hello: [never] }>()
-  const listenerOne = vi.fn((event: Event) => event.stopImmediatePropagation())
-  const listenerTwo = vi.fn()
-  emitter.on('hello', listenerOne)
-  emitter.on('hello', listenerTwo)
-  const hasListeners = emitter.emit('hello')
+it('stops calling listeners if the propagation is stopped', async () => {
+  const emitterOne = new Emitter<{ greet: [string, Event] }>()
+  const emitterTwo = new Emitter<{ greet: [string, Event] }>()
+  const listenerOne = vi.fn()
+  const listenerTwo = vi.fn((event) => event.stopPropagation())
 
-  expect(hasListeners).toBe(true)
+  emitterOne.on('greet', listenerOne)
+  emitterOne.on('greet', listenerTwo)
+  emitterTwo.on('greet', listenerOne)
+  emitterTwo.on('greet', listenerOne)
+
+  // Propagation can be prevented only when the event is shared.
+  const event = emitterOne.createEvent('greet', 'hello')
+
+  expect(emitterOne.emit(event)).toBe(true)
+  expect(emitterTwo.emit(event)).toBe(false)
+
   expect(listenerOne).toHaveBeenCalledTimes(1)
-  expect(listenerTwo).not.toHaveBeenCalled()
+  expect(listenerTwo).toHaveBeenCalledTimes(1)
 })

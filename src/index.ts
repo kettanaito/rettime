@@ -87,7 +87,13 @@ export namespace Emitter {
     Target extends Emitter<any>,
     Type extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
-  > = DataToEvent<Type, EventMap[Type][0]>
+  > = DataToEvent<Type, Emitter.EventDataType<Target, Type, EventMap>>
+
+  export type EventDataType<
+    Target extends Emitter<any>,
+    Type extends keyof EventMap & string,
+    EventMap extends DefaultEventMap = InferEventMap<Target>,
+  > = EventMap[Type][0]
 }
 
 export class Emitter<EventMap extends DefaultEventMap = {}> {
@@ -196,66 +202,124 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
    * @returns {boolean} Returns `true` if the event had any listeners, `false` otherwise.
    */
   public emit<Type extends keyof EventMap & string>(
-    ...args: EventMap[Type][0] extends [never]
+    event: Emitter.EventType<typeof this, Type, EventMap>,
+  ): boolean
+  public emit<Type extends keyof EventMap & string>(
+    ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
       ? [type: Type]
-      : [type: Type, data: EventMap[Type][0]]
+      : [type: Type, data: Emitter.EventDataType<typeof this, Type, EventMap>]
+  ): boolean
+
+  public emit<Type extends keyof EventMap & string>(
+    ...args:
+      | [Emitter.EventType<typeof this, Type, EventMap>]
+      | (Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
+          ? [type: Type]
+          : [
+              type: Type,
+              data: Emitter.EventDataType<typeof this, Type, EventMap>,
+            ])
   ): boolean {
-    if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
+    const [eventOrType, data] = args
+    const isEvent = eventOrType instanceof Event
+    const type = isEvent ? eventOrType.type : eventOrType
+
+    if (!this.#listeners[type] || this.#listeners[type].length === 0) {
       return false
     }
 
-    const event = this.#createEventForData(args[0], args[1])
+    const event = isEvent
+      ? eventOrType
+      : this.createEvent.call(this, type, data)
 
-    for (const listener of this.#listeners[args[0]]) {
-      if (this.#listenerOptions.get(listener).signal.aborted) {
-        continue
+    for (const listener of this.#listeners[type]) {
+      if (
+        event[kPropagationStopped] != null &&
+        event[kPropagationStopped] !== this
+      ) {
+        return false
       }
 
       if (event[kImmediatePropagationStopped]) {
         break
+      }
+
+      if (this.#listenerOptions.get(listener).signal.aborted) {
+        continue
       }
 
       this.#callListener(listener, event)
     }
 
-    this.#eventsCache.delete([args[0], args[1]])
+    this.#eventsCache.delete([type, data])
 
     return true
   }
 
   /**
-   * Emits the given event and returns a Promise that resolves
-   * with the array of listener results, or rejects as soon as any
-   * of the listeners throw. Listeners are still called synchronously
-   * to guarantee call order and prevent race conditions.
+   * Emits the given event and returns a Promise that always resolves
+   * with the array of listener results (either fulfilled or rejected).
+   * The listeners are still called synchronously to guarantee call order
+   * and prevent race conditions.
    */
-  public async emitAsPromise<Type extends keyof EventMap & string>(
-    ...args: EventMap[Type][0] extends [never]
+  public emitAsPromise<Type extends keyof EventMap & string>(
+    event: Emitter.EventType<typeof this, Type, EventMap>,
+  ): Promise<Array<Emitter.ListenerReturnType<typeof this, Type, EventMap>>>
+  public emitAsPromise<Type extends keyof EventMap & string>(
+    ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
       ? [type: Type]
-      : [type: Type, data: EventMap[Type][0]]
+      : [type: Type, data: Emitter.EventDataType<typeof this, Type, EventMap>]
+  ): Promise<Array<Emitter.ListenerReturnType<typeof this, Type, EventMap>>>
+
+  public async emitAsPromise<Type extends keyof EventMap & string>(
+    ...args:
+      | [Emitter.EventType<typeof this, Type, EventMap>]
+      | (Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
+          ? [type: Type]
+          : [
+              type: Type,
+              data: Emitter.EventDataType<typeof this, Type, EventMap>,
+            ])
   ): Promise<Array<Emitter.ListenerReturnType<typeof this, Type, EventMap>>> {
-    if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
+    const [eventOrType, data] = args
+    const isEvent = eventOrType instanceof Event
+    const type = isEvent ? eventOrType.type : eventOrType
+
+    if (!this.#listeners[type] || this.#listeners[type].length === 0) {
       return []
     }
 
-    const event = this.#createEventForData(args[0], args[1])
-    const pendingListeners: Array<Promise<unknown>> = []
+    const event = isEvent
+      ? eventOrType
+      : this.createEvent.call(this, type, data)
 
-    for (const listener of this.#listeners[args[0]]) {
-      if (this.#listenerOptions.get(listener).signal.aborted) {
-        continue
+    const pendingListeners: Array<
+      Promise<Emitter.ListenerReturnType<typeof this, Type, EventMap>>
+    > = []
+
+    for (const listener of this.#listeners[type]) {
+      if (
+        event[kPropagationStopped] != null &&
+        event[kPropagationStopped] !== this
+      ) {
+        return []
       }
 
       if (event[kImmediatePropagationStopped]) {
         break
       }
 
+      if (this.#listenerOptions.get(listener).signal.aborted) {
+        continue
+      }
+
       pendingListeners.push(
+        // Awaiting individual listeners guarantees their call order.
         await Promise.resolve(this.#callListener(listener, event)),
       )
     }
 
-    this.#eventsCache.delete([args[0], args[1]])
+    this.#eventsCache.delete([type, data])
 
     return Promise.allSettled(pendingListeners).then((results) => {
       return results.map((result) =>
@@ -266,33 +330,60 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
 
   /**
    * Emits the given event and returns a generator that yields
-   * the result of each listener. This way, you stop exhausting
+   * the result of each listener in order. This way, you stop exhausting
    * the listeners once you get the expected value.
    */
-  public *emitAsGenerator<Type extends keyof EventMap & string>(
-    ...args: EventMap[Type][0] extends [never]
+  public emitAsGenerator<Type extends keyof EventMap & string>(
+    event: Emitter.EventType<typeof this, Type, EventMap>,
+  ): Generator<Emitter.ListenerReturnType<typeof this, Type, EventMap>>
+  public emitAsGenerator<Type extends keyof EventMap & string>(
+    ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
       ? [type: Type]
-      : [type: Type, data: EventMap[Type][0]]
-  ): Generator<unknown> {
-    if (!this.#listeners[args[0]] || this.#listeners[args[0]].length === 0) {
+      : [type: Type, data: Emitter.EventDataType<typeof this, Type, EventMap>]
+  ): Generator<Emitter.ListenerReturnType<typeof this, Type, EventMap>>
+
+  public *emitAsGenerator<Type extends keyof EventMap & string>(
+    ...args:
+      | [event: Emitter.EventType<typeof this, Type, EventMap>]
+      | (Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
+          ? [type: Type]
+          : [
+              type: Type,
+              data: Emitter.EventDataType<typeof this, Type, EventMap>,
+            ])
+  ): Generator<Emitter.ListenerReturnType<typeof this, Type, EventMap>> {
+    const [eventOrType, data] = args
+    const isEvent = eventOrType instanceof Event
+    const type = isEvent ? eventOrType.type : eventOrType
+
+    if (!this.#listeners[type] || this.#listeners[type].length === 0) {
       return
     }
 
-    const event = this.#createEventForData(args[0], args[1])
+    const event = isEvent
+      ? eventOrType
+      : this.createEvent.call(this, type, data)
 
-    for (const listener of this.#listeners[args[0]]) {
-      if (this.#listenerOptions.get(listener).signal.aborted) {
-        continue
+    for (const listener of this.#listeners[type]) {
+      if (
+        event[kPropagationStopped] != null &&
+        event[kPropagationStopped] !== this
+      ) {
+        return
       }
 
       if (event[kImmediatePropagationStopped]) {
         break
       }
 
+      if (this.#listenerOptions.get(listener).signal.aborted) {
+        continue
+      }
+
       yield this.#callListener(listener, event)
     }
 
-    this.#eventsCache.delete([args[0], args[1]])
+    this.#eventsCache.delete([type, data])
   }
 
   /**
@@ -377,27 +468,61 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
     this.#listeners[type].push(listener)
   }
 
-  #createEventForData<Type extends keyof EventMap & string>(
-    type: Type,
-    data: EventMap[Type][0],
-  ): Event {
+  public createEvent<
+    Type extends keyof EventMap & string,
+    EmitterEvent extends Emitter.EventType<
+      typeof this,
+      Type,
+      EventMap
+    > = Emitter.EventType<typeof this, Type, EventMap>,
+  >(
+    ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
+      ? [type: Type]
+      : [type: Type, data: Emitter.EventDataType<typeof this, Type, EventMap>]
+  ): EmitterEvent {
+    const [type, data] = args
     const cachedEvent = this.#eventsCache.get([type, data])
 
     if (cachedEvent) {
-      return cachedEvent
+      return cachedEvent as EmitterEvent
     }
 
     let event =
       data == null
-        ? new Event(type, { cancelable: true })
-        : new MessageEvent(type, { data, cancelable: true })
+        ? (new Event(type, { cancelable: true }) as EmitterEvent)
+        : (new MessageEvent(type, { data, cancelable: true }) as EmitterEvent)
 
     Object.defineProperties(event, {
+      defaultPrevented: {
+        enumerable: false,
+        writable: true,
+        value: false,
+      },
+      preventDefault: {
+        enumerable: false,
+        value: new Proxy(event.preventDefault, {
+          apply: (target, thisArg, argArray) => {
+            /**
+             * @note Node.js 18 does NOT update the `defaultPrevented` value
+             * when you call `preventDefault()`. This is a bug in Node.js.
+             *
+             * @fixme Remove this hack when Node.js 20 is the minimal version.
+             */
+            Reflect.set(event, 'defaultPrevented', true)
+            return Reflect.apply(target, thisArg, argArray)
+          },
+        }),
+      },
       stopPropagation: {
         enumerable: false,
         value: new Proxy(event.stopPropagation, {
-          apply(target, thisArg, argArray) {
-            event[kPropagationStopped] = true
+          apply: (target, thisArg, argArray) => {
+            /**
+             * @note Propagation is also stopped when the immediate propagation is stopped.
+             * Because of that, store the reference to the Emitter instance that stopped it.
+             * (Node.js makes `thisArg` to be the `Event` that stops it).
+             */
+            event[kPropagationStopped] = this
             return Reflect.apply(target, thisArg, argArray)
           },
         }),
