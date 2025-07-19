@@ -309,7 +309,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
         break
       }
 
-      if (this.#listenerOptions.get(listener).signal.aborted) {
+      if (this.#listenerOptions.get(listener)?.signal?.aborted) {
         continue
       }
 
@@ -376,7 +376,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
         break
       }
 
-      if (this.#listenerOptions.get(listener).signal.aborted) {
+      if (this.#listenerOptions.get(listener)?.signal?.aborted) {
         continue
       }
 
