@@ -1,8 +1,37 @@
 export type DefaultEventMap = {
-  [type: string]: [payload: unknown, returnValue?: unknown]
+  [type: string]: StrictEvent<unknown>
 }
 
-type TypedEvent<T extends string> = Event & { type: T }
+export interface StrictEvent<
+  DataType = unknown,
+  EventType extends string = string,
+> extends Omit<MessageEvent<DataType>, 'type'> {
+  type: EventType
+}
+
+export class StrictEvent<DataType = unknown, EventType extends string = string>
+  extends MessageEvent<DataType>
+  implements StrictEvent<DataType, EventType>
+{
+  constructor(type: EventType, init: { data: DataType }) {
+    super(type, init)
+  }
+}
+
+type Brand<Event extends StrictEvent, EventType extends string> = Event & {
+  type: EventType
+}
+
+type BrandEventMap<Events extends DefaultEventMap> = {
+  [EventType in keyof Events & string]: Events[EventType] extends StrictEvent
+    ? Brand<Events[EventType], EventType>
+    : never
+}
+
+type InferTypeEvent<Event extends TypedEvent<any, any>> =
+  Event extends TypedEvent<infer Input, infer Output>
+    ? { input: Input; output: Output }
+    : never
 
 interface StrictEventListener<
   Event extends globalThis.Event,
@@ -12,16 +41,10 @@ interface StrictEventListener<
 }
 
 type InferEventMap<Target extends Emitter<any>> = Target extends Emitter<
-  infer T
+  infer EventMap
 >
-  ? T
+  ? EventMap
   : never
-
-type DataToEvent<Type extends string, Data extends unknown> = [Data] extends [
-  never,
-]
-  ? TypedEvent<Type>
-  : MessageEvent<Data> & { type: Type }
 
 type InternalListenersMap<
   Target extends Emitter<any>,
@@ -72,29 +95,29 @@ export namespace Emitter {
    */
   export type ListenerReturnType<
     Target extends Emitter<any>,
-    Type extends keyof EventMap & string,
+    EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
-  > = EventMap[Type][1]
+  > = InferTypeEvent<EventMap[EventType]>['output']
 
   /**
    * Returns an appropriate `Event` type for the given event type.
    *
    * @example
-   * const emitter = new Emitter<{ greeting: [string] }>()
+   * const emitter = new Emitter<{ greeting: StrictEvent<string> }>()
    * type GreetingEvent = InferEventType<typeof emitter, 'greeting'>
-   * // MessageEvent<string>
+   * // StrictEvent<string>
    */
   export type EventType<
     Target extends Emitter<any>,
-    Type extends keyof EventMap & string,
+    EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
-  > = DataToEvent<Type, Emitter.EventDataType<Target, Type, EventMap>>
+  > = Brand<EventMap[EventType], EventType>
 
   export type EventDataType<
     Target extends Emitter<any>,
-    Type extends keyof EventMap & string,
+    EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
-  > = EventMap[Type][0]
+  > = EventMap[EventType] extends StrictEvent<infer DataType> ? DataType : never
 }
 
 export class Emitter<EventMap extends DefaultEventMap = {}> {
@@ -203,7 +226,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
    * @returns {boolean} Returns `true` if the event had any listeners, `false` otherwise.
    */
   public emit<Type extends keyof EventMap & string>(
-    event: Emitter.EventType<typeof this, Type, EventMap>,
+    event: BrandEventMap<EventMap>[Type],
   ): boolean
   public emit<Type extends keyof EventMap & string>(
     ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
@@ -264,7 +287,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
    * and prevent race conditions.
    */
   public emitAsPromise<Type extends keyof EventMap & string>(
-    event: Emitter.EventType<typeof this, Type, EventMap>,
+    event: BrandEventMap<EventMap>[Type],
   ): Promise<Array<Emitter.ListenerReturnType<typeof this, Type, EventMap>>>
   public emitAsPromise<Type extends keyof EventMap & string>(
     ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
@@ -274,7 +297,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
 
   public async emitAsPromise<Type extends keyof EventMap & string>(
     ...args:
-      | [Emitter.EventType<typeof this, Type, EventMap>]
+      | [BrandEventMap<EventMap>[Type]]
       | (Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
           ? [type: Type]
           : [
@@ -335,7 +358,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
    * the listeners once you get the expected value.
    */
   public emitAsGenerator<Type extends keyof EventMap & string>(
-    event: Emitter.EventType<typeof this, Type, EventMap>,
+    event: BrandEventMap<EventMap>[Type],
   ): Generator<Emitter.ListenerReturnType<typeof this, Type, EventMap>>
   public emitAsGenerator<Type extends keyof EventMap & string>(
     ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
@@ -345,7 +368,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
 
   public *emitAsGenerator<Type extends keyof EventMap & string>(
     ...args:
-      | [event: Emitter.EventType<typeof this, Type, EventMap>]
+      | [event: BrandEventMap<EventMap>[Type]]
       | (Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
           ? [type: Type]
           : [
