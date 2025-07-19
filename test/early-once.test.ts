@@ -12,7 +12,7 @@ it('prepends a one-time listener for the event', () => {
   expect(listenerTwo).toHaveBeenCalledOnce()
   expect(listenerOne).toHaveBeenCalledOnce()
   expect(listenerTwo.mock.invocationCallOrder[0]).toBeLessThan(
-    listenerOne.mock.invocationCallOrder[0]
+    listenerOne.mock.invocationCallOrder[0],
   )
 
   listenerOne.mockClear()

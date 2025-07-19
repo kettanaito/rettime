@@ -1,5 +1,5 @@
 export type DefaultEventMap = {
-  [type: string]: [payload: unknown, listenerResult?: unknown]
+  [type: string]: [payload: unknown, returnValue?: unknown]
 }
 
 type TypedEvent<T extends string> = Event & { type: T }
@@ -309,7 +309,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
         break
       }
 
-      if (this.#listenerOptions.get(listener).signal.aborted) {
+      if (this.#listenerOptions.get(listener)?.signal?.aborted) {
         continue
       }
 
@@ -376,7 +376,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
         break
       }
 
-      if (this.#listenerOptions.get(listener).signal.aborted) {
+      if (this.#listenerOptions.get(listener)?.signal?.aborted) {
         continue
       }
 
@@ -542,13 +542,13 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
   }
 
   #callListener(listener: StrictEventListener<Event>, event: Event) {
-    const listenerResult = listener.call(this, event)
+    const returnValue = listener.call(this, event)
 
     if (this.#listenerOptions.get(listener)?.once) {
       this.removeListener(event.type, listener)
     }
 
-    return listenerResult
+    return returnValue
   }
 
   #createAbortController<Type extends keyof EventMap & string>(
