@@ -26,12 +26,13 @@ type DataToEvent<Type extends string, Data extends unknown> = [Data] extends [
 type InternalListenersMap<
   Target extends Emitter<any>,
   EventMap extends DefaultEventMap = InferEventMap<Target>,
+  Type extends string = keyof EventMap & string,
 > = Record<
   keyof EventMap,
   Array<
     StrictEventListener<
-      Emitter.EventType<Target, keyof EventMap & string, EventMap>,
-      Emitter.ListenerReturnType<Target, keyof EventMap & string, EventMap>
+      Emitter.EventType<Target, Type, EventMap>,
+      Emitter.ListenerReturnType<Target, Type, EventMap>
     >
   >
 >
@@ -103,7 +104,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
   #abortControllers: WeakMap<Function, AbortController>
 
   constructor() {
-    this.#listeners = {} as InternalListenersMap<typeof this>
+    this.#listeners = {} as InternalListenersMap<typeof this, EventMap>
     this.#listenerOptions = new WeakMap()
     this.#eventsCache = new WeakMap()
     this.#abortControllers = new WeakMap()

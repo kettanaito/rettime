@@ -1,7 +1,6 @@
 {
   "include": ["**/*.ts"],
   "compilerOptions": {
-    "strict": true,
     "skipLibCheck": true,
     "target": "es2022",
     "moduleResolution": "bundler",
