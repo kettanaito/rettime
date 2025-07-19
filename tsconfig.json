@@ -1,8 +1,10 @@
 {
   "include": ["**/*.ts"],
   "compilerOptions": {
+    "skipLibCheck": true,
     "target": "es2022",
     "moduleResolution": "bundler",
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals"],
+    "lib": ["dom", "esnext"]
   }
 }
