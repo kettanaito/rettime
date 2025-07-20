@@ -1,7 +1,19 @@
-import { Emitter } from '../../src'
+import { Emitter, StrictEvent } from '../../src'
 
-it('infers the the listener return type', async () => {
-  const emitter = new Emitter<{ greeting: [never, string] }>()
+it('infers event return type', async () => {
+  const emitter = new Emitter<{ greeting: StrictEvent }>()
+
+  emitter.emitAsPromise('greeting').then((value) => {
+    expectTypeOf(value).toEqualTypeOf<unknown[]>()
+  })
+
+  for (const value of emitter.emitAsGenerator('greeting')) {
+    expectTypeOf(value).toBeUnknown()
+  }
+})
+
+it('infers return type of the event with explicit return type', async () => {
+  const emitter = new Emitter<{ greeting: StrictEvent<never, string> }>()
 
   emitter.emitAsPromise('greeting').then((value) => {
     /**
