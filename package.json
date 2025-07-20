@@ -15,6 +15,9 @@
     "build": "tsup",
     "release": "release publish"
   },
+  "imports": {
+    "#src/*": "./src/*"
+  },
   "keywords": [
     "emitter",
     "event",

@@ -1,7 +1,11 @@
-import { Emitter, StrictEvent } from '../../src'
+import { Emitter, StrictEvent } from '#src/index.js'
 
 it('supports custom events', () => {
-  class GreetingEvent<D, T extends string = string> extends StrictEvent<D, T> {
+  class GreetingEvent<
+    D,
+    R = any,
+    T extends string = string,
+  > extends StrictEvent<D, R, T> {
     public id: string = 'abc-123'
   }
 
@@ -36,7 +40,11 @@ it('infers listener type', () => {
 })
 
 it('infers listener type of a custom event', () => {
-  class GreetingEvent<D, T extends string = string> extends StrictEvent<D, T> {
+  class GreetingEvent<
+    D,
+    R = any,
+    T extends string = string,
+  > extends StrictEvent<D, R, T> {
     public id: string
   }
 
@@ -49,4 +57,40 @@ it('infers listener type of a custom event', () => {
     expectTypeOf(event.id).toBeString()
     expectTypeOf(event.data).toEqualTypeOf<'john'>()
   })
+})
+
+it('infers listener return type', async () => {
+  const emitter = new Emitter<{
+    greeting: StrictEvent<string, number>
+  }>()
+
+  emitter.emitAsPromise('greeting', 'hello').then((value) => {
+    expectTypeOf(value).toEqualTypeOf<number[]>()
+  })
+
+  for (const value of emitter.emitAsGenerator('greeting', 'hello')) {
+    expectTypeOf(value).toEqualTypeOf<number>()
+  }
+})
+
+it('infers listener return type of a custom event', async () => {
+  class GreetingEvent<
+    D,
+    R = any,
+    T extends string = string,
+  > extends StrictEvent<D, R, T> {
+    public id: string
+  }
+
+  const emitter = new Emitter<{
+    greeting: GreetingEvent<string, number>
+  }>()
+
+  emitter.emitAsPromise('greeting', 'hello').then((value) => {
+    expectTypeOf(value).toEqualTypeOf<number[]>()
+  })
+
+  for (const value of emitter.emitAsGenerator('greeting', 'hello')) {
+    expectTypeOf(value).toEqualTypeOf<number>()
+  }
 })

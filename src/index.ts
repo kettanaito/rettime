@@ -1,18 +1,25 @@
 export type DefaultEventMap = {
-  [type: string]: StrictEvent<unknown>
+  [type: string]: StrictEvent
 }
 
 export interface StrictEvent<
   DataType = unknown,
+  ReturnType = unknown,
   EventType extends string = string,
 > extends Omit<MessageEvent<DataType>, 'type'> {
   type: EventType
 }
 
-export class StrictEvent<DataType = unknown, EventType extends string = string>
+export class StrictEvent<
+    DataType = unknown,
+    ReturnType = unknown,
+    EventType extends string = string,
+  >
   extends MessageEvent<DataType>
-  implements StrictEvent<DataType, EventType>
+  implements StrictEvent<DataType, ReturnType, EventType>
 {
+  #returnType: ReturnType
+
   constructor(type: EventType, init: { data: DataType }) {
     super(type, init)
   }
@@ -28,11 +35,6 @@ type BrandEventMap<Events extends DefaultEventMap> = {
     : never
 }
 
-type InferTypeEvent<Event extends TypedEvent<any, any>> =
-  Event extends TypedEvent<infer Input, infer Output>
-    ? { input: Input; output: Output }
-    : never
-
 interface StrictEventListener<
   Event extends globalThis.Event,
   ReturnType = void,
@@ -40,14 +42,14 @@ interface StrictEventListener<
   (event: Event): [ReturnType] extends [undefined] ? void : ReturnType
 }
 
-type InferEventMap<Target extends Emitter<any>> = Target extends Emitter<
+type InferEventMap<Target extends Emitter> = Target extends Emitter<
   infer EventMap
 >
   ? EventMap
   : never
 
 type InternalListenersMap<
-  Target extends Emitter<any>,
+  Target extends Emitter,
   EventMap extends DefaultEventMap = InferEventMap<Target>,
   Type extends string = keyof EventMap & string,
 > = Record<
@@ -77,7 +79,7 @@ export namespace Emitter {
    * // (event: MessageEvent<Cart>) => number
    */
   export type ListenerType<
-    Target extends Emitter<any>,
+    Target extends Emitter,
     Type extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
   > = StrictEventListener<
@@ -94,10 +96,12 @@ export namespace Emitter {
    * // number
    */
   export type ListenerReturnType<
-    Target extends Emitter<any>,
+    Target extends Emitter,
     EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
-  > = InferTypeEvent<EventMap[EventType]>['output']
+  > = EventMap[EventType] extends StrictEvent<any, infer ReturnType>
+    ? ReturnType
+    : never
 
   /**
    * Returns an appropriate `Event` type for the given event type.
@@ -108,13 +112,13 @@ export namespace Emitter {
    * // StrictEvent<string>
    */
   export type EventType<
-    Target extends Emitter<any>,
+    Target extends Emitter,
     EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
   > = Brand<EventMap[EventType], EventType>
 
   export type EventDataType<
-    Target extends Emitter<any>,
+    Target extends Emitter,
     EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
   > = EventMap[EventType] extends StrictEvent<infer DataType> ? DataType : never
