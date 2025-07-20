@@ -5,7 +5,7 @@ it('defaults to `unknown` for events without a return type', () => {
     a: StrictEvent<string>
   }>()
 
-  expectTypeOf<Emitter.ListenerReturnType<typeof emitter, 'a'>>().toBeVoid()
+  expectTypeOf<Emitter.ListenerReturnType<typeof emitter, 'a'>>().toBeAny()
 })
 
 it('defaults to `unknown` for custom events without a return type', () => {

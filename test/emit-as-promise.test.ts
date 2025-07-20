@@ -1,24 +1,24 @@
-import { Emitter } from '../src'
+import { Emitter, StrictEvent } from '#src/index.js'
 
 it('resolves with empty array if no matching listeners found', async () => {
-  const emitter = new Emitter<{ hello: [never] }>()
-  const promise = emitter.emitAsPromise('hello')
+  const emitter = new Emitter<{ hello: StrictEvent }>()
+  const promise = emitter.emitAsPromise(new StrictEvent('hello'))
   await expect(promise).resolves.toEqual([])
 })
 
 it('resolves with sequential listener results', async () => {
-  const emitter = new Emitter<{ hello: [never, number] }>()
+  const emitter = new Emitter<{ hello: StrictEvent<void, number> }>()
   const listenerOne = vi.fn(() => 1)
   const listenerTwo = vi.fn(() => 2)
   emitter.on('hello', listenerOne)
   emitter.on('hello', listenerTwo)
-  const promise = emitter.emitAsPromise('hello')
+  const promise = emitter.emitAsPromise(new StrictEvent('hello'))
 
   await expect(promise).resolves.toEqual([1, 2])
 })
 
 it('rejects if one of the listeners throws', async () => {
-  const emitter = new Emitter<{ hello: [never, number] }>()
+  const emitter = new Emitter<{ hello: StrictEvent<void, number> }>()
   const listenerOne = vi.fn(() => 1)
   const listenerTwo = vi.fn(() => {
     throw new Error('Oops')
@@ -27,19 +27,19 @@ it('rejects if one of the listeners throws', async () => {
   emitter.on('hello', listenerOne)
   emitter.on('hello', listenerTwo)
   emitter.on('hello', listenerThree)
-  const promise = emitter.emitAsPromise('hello')
+  const promise = emitter.emitAsPromise(new StrictEvent('hello'))
 
   await expect(promise).rejects.toThrow(new Error('Oops'))
   expect(listenerThree).not.toHaveBeenCalled()
 })
 
 it('stops calling listeners if immediate propagation is stopped', async () => {
-  const emitter = new Emitter<{ hello: [never] }>()
+  const emitter = new Emitter<{ hello: StrictEvent }>()
   const listenerOne = vi.fn((event: Event) => event.stopImmediatePropagation())
   const listenerTwo = vi.fn()
   emitter.on('hello', listenerOne)
   emitter.on('hello', listenerTwo)
-  const promise = emitter.emitAsPromise('hello')
+  const promise = emitter.emitAsPromise(new StrictEvent('hello'))
 
   await expect(promise).resolves.toEqual([undefined])
   expect(listenerOne).toHaveBeenCalledTimes(1)
@@ -47,8 +47,8 @@ it('stops calling listeners if immediate propagation is stopped', async () => {
 })
 
 it('stops calling listeners if propagation is stopped', async () => {
-  const emitterOne = new Emitter<{ greet: [string, Event] }>()
-  const emitterTwo = new Emitter<{ greet: [string, Event] }>()
+  const emitterOne = new Emitter<{ greet: StrictEvent<string, Event> }>()
+  const emitterTwo = new Emitter<{ greet: StrictEvent<string, Event> }>()
 
   emitterOne.on('greet', (event) => event)
   emitterOne.on('greet', (event) => {
@@ -59,7 +59,7 @@ it('stops calling listeners if propagation is stopped', async () => {
   emitterTwo.on('greet', (event) => event)
 
   // Propagation can be prevented only when the event is shared.
-  const event = emitterOne.createEvent('greet', 'hello')
+  const event = new StrictEvent('greet', { data: 'hello' })
 
   await expect(emitterOne.emitAsPromise(event)).resolves.toEqual([
     expect.any(Event),

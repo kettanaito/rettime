@@ -1,18 +1,17 @@
-import { Emitter } from '../src'
+import { Emitter, StrictEvent } from '#src/index.js'
 
 it('forwards event to another emitter', () => {
-  const emitterOne = new Emitter<{ one: [string] }>()
-  const emitterTwo = new Emitter<{ one: [string] }>()
+  const emitterOne = new Emitter<{ one: StrictEvent<string> }>()
+  const emitterTwo = new Emitter<{ one: StrictEvent<string> }>()
 
   const listener = vi.fn()
   emitterOne.on('one', (event) => {
-    emitterTwo.emit(event.type, event.data)
+    emitterTwo.emit(event)
   })
   emitterTwo.on('one', listener)
 
-  expect(emitterOne.emit('one', 'hello')).toBe(true)
+  const event = new StrictEvent('one', { data: 'hello' })
+  expect(emitterOne.emit(event)).toBe(true)
   expect(listener).toHaveBeenCalledTimes(1)
-  expect(listener).toHaveBeenCalledWith(
-    new MessageEvent('one', { data: 'hello' })
-  )
+  expect(listener).toHaveBeenCalledWith(event)
 })
