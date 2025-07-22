@@ -2,7 +2,7 @@
   "type": "module",
   "name": "rettime",
   "version": "0.5.4",
-  "description": "Type-safe dependency-free EventTarget-inspired event emitter for browser and Node.js",
+  "description": "A type-safe marriage of `EventTarget` and `EventEmitter`.",
   "main": "./build/index.js",
   "types": "./build/index.d.ts",
   "files": [
@@ -26,7 +26,7 @@
     "strict",
     "event-target"
   ],
-  "author": "Artem Zakharchenko <me@kettanaito.com>",
+  "author": "Artem Zakharchenko <kettanaito@gmail.com>",
   "license": "MIT",
   "devDependencies": {
     "@ossjs/release": "^0.8.1",
