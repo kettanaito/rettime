@@ -80,7 +80,7 @@ type InternalListenersMap<
   Array<Emitter.ListenerType<Target, EventType, EventMap>>
 >
 
-type EmmiterListenerOptions = {
+export type TypedListenerOptions = {
   signal?: AbortSignal
 }
 
@@ -159,7 +159,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
   public on<EventType extends keyof EventMap & string>(
     type: EventType,
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
-    options?: EmmiterListenerOptions,
+    options?: TypedListenerOptions,
   ): AbortController {
     this.#addListener(type, listener)
 
@@ -181,7 +181,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
   public once<EventType extends keyof EventMap & string>(
     type: EventType,
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
-    options?: EmmiterListenerOptions,
+    options?: TypedListenerOptions,
   ): AbortController {
     this.#addListener(type, listener)
 
@@ -204,7 +204,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
   public earlyOn<EventType extends keyof EventMap & string>(
     type: EventType,
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
-    options?: EmmiterListenerOptions,
+    options?: TypedListenerOptions,
   ): AbortController {
     if (!this.#listeners[type]) {
       this.#listeners[type] = []
@@ -228,7 +228,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
   public earlyOnce<EventType extends keyof EventMap & string>(
     type: EventType,
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
-    options?: EmmiterListenerOptions,
+    options?: TypedListenerOptions,
   ): AbortController {
     this.earlyOn(type, listener)
 
