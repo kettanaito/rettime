@@ -1,36 +1,34 @@
-import { Emitter, StrictEvent } from '#src/index.js'
+import { Emitter, TypedEvent } from '#src/index.js'
 
 it('infers listener type', () => {
   const emitter = new Emitter<{
-    greeting: StrictEvent
+    greeting: TypedEvent
   }>()
 
   expectTypeOf<
     Emitter.ListenerType<typeof emitter, 'greeting'>
-  >().toEqualTypeOf<(event: StrictEvent & { type: 'greeting' }) => any>()
+  >().toEqualTypeOf<(event: TypedEvent & { type: 'greeting' }) => any>()
 })
 
 it('infers listener type with explicit data type', () => {
   const emitter = new Emitter<{
-    greeting: StrictEvent<string>
+    greeting: TypedEvent<string>
   }>()
 
   expectTypeOf<
     Emitter.ListenerType<typeof emitter, 'greeting'>
-  >().toEqualTypeOf<
-    (event: StrictEvent<string> & { type: 'greeting' }) => any
-  >()
+  >().toEqualTypeOf<(event: TypedEvent<string> & { type: 'greeting' }) => any>()
 })
 
 it('infers listener type with explicit return type', () => {
   const emitter = new Emitter<{
-    greeting: StrictEvent<string, number>
+    greeting: TypedEvent<string, number>
   }>()
 
   expectTypeOf<
     Emitter.ListenerType<typeof emitter, 'greeting'>
   >().toEqualTypeOf<
-    (event: StrictEvent<string, number> & { type: 'greeting' }) => number
+    (event: TypedEvent<string, number> & { type: 'greeting' }) => number
   >()
 })
 
@@ -42,7 +40,7 @@ it('infers listener type of a custom event', () => {
     I = unknown,
     O = unknown,
     T extends string = string,
-  > extends StrictEvent<I, O, T> {}
+  > extends TypedEvent<I, O, T> {}
 
   const emitter = new Emitter<{
     greeting: GreetingEvent
@@ -58,7 +56,7 @@ it('infers listener type of a custom event with explicit data type', () => {
     I,
     O = unknown,
     T extends string = string,
-  > extends StrictEvent<I, O, T> {}
+  > extends TypedEvent<I, O, T> {}
 
   const emitter = new Emitter<{
     greeting: GreetingEvent<string>
@@ -76,7 +74,7 @@ it('infers listener type of a custom event with explicit return type', () => {
     I,
     O = unknown,
     T extends string = string,
-  > extends StrictEvent<I, O, T> {}
+  > extends TypedEvent<I, O, T> {}
 
   const emitter = new Emitter<{
     greeting: GreetingEvent<string, number>

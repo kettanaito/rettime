@@ -1,8 +1,8 @@
-import { Emitter, StrictEvent } from '#src/index.js'
+import { Emitter, TypedEvent } from '#src/index.js'
 
 it('infers event type', () => {
   const emitter = new Emitter<{
-    greeting: StrictEvent
+    greeting: TypedEvent
   }>()
 
   emitter.on('greeting', (event) => {
@@ -16,7 +16,7 @@ it('infers event type', () => {
 
 it('infers event type with a custom data type', () => {
   const emitter = new Emitter<{
-    greeting: StrictEvent<string>
+    greeting: TypedEvent<string>
   }>()
 
   emitter.on('greeting', (event) => {
@@ -33,7 +33,7 @@ it('infers custom event type', () => {
     I = void,
     O = void,
     T extends string = string,
-  > extends StrictEvent<I, O, T> {
+  > extends TypedEvent<I, O, T> {
     public id: string
   }
 
@@ -56,7 +56,7 @@ it('infers custom event type with a custom data type', () => {
     I extends string,
     O = void,
     T extends string = string,
-  > extends StrictEvent<I, O, T> {
+  > extends TypedEvent<I, O, T> {
     public id: string
   }
 

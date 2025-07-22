@@ -1,48 +1,48 @@
-import { Emitter, StrictEvent } from '#src/index.js'
+import { Emitter, TypedEvent } from '#src/index.js'
 
 it('emits an event', async () => {
-  const emitter = new Emitter<{ greeting: StrictEvent }>()
+  const emitter = new Emitter<{ greeting: TypedEvent }>()
 
-  emitter.emit(new StrictEvent('greeting'))
+  emitter.emit(new TypedEvent('greeting'))
   emitter.emit(
     // @ts-expect-error Redundant data.
-    new StrictEvent('greeting', { data: 'hello' }),
+    new TypedEvent('greeting', { data: 'hello' }),
   )
 
-  await emitter.emitAsPromise(new StrictEvent('greeting'))
+  await emitter.emitAsPromise(new TypedEvent('greeting'))
   await emitter.emitAsPromise(
     // @ts-expect-error Redundant data.
-    new StrictEvent('greeting', { data: 'hello' }),
+    new TypedEvent('greeting', { data: 'hello' }),
   )
 
-  emitter.emitAsGenerator(new StrictEvent('greeting'))
+  emitter.emitAsGenerator(new TypedEvent('greeting'))
   emitter.emitAsGenerator(
     // @ts-expect-error Event does not specifiy data type.
-    new StrictEvent('greeting', { data: 'hello' }),
+    new TypedEvent('greeting', { data: 'hello' }),
   )
 })
 
 it('emits an event with custom data type', async () => {
-  const emitter = new Emitter<{ greeting: StrictEvent<string> }>()
+  const emitter = new Emitter<{ greeting: TypedEvent<string> }>()
 
-  emitter.emit(new StrictEvent('greeting', { data: 'hello' }))
+  emitter.emit(new TypedEvent('greeting', { data: 'hello' }))
   // @ts-expect-error Missing data.
-  emitter.emit(new StrictEvent('greeting'))
+  emitter.emit(new TypedEvent('greeting'))
   emitter.emit(
     // @ts-expect-error Invalid data type.
-    new StrictEvent('greeting', { data: 123 }),
+    new TypedEvent('greeting', { data: 123 }),
   )
 
-  await emitter.emitAsPromise(new StrictEvent('greeting', { data: 'hello' }))
+  await emitter.emitAsPromise(new TypedEvent('greeting', { data: 'hello' }))
   await emitter.emitAsPromise(
     // @ts-expect-error Event is missing data.
-    new StrictEvent('greeting'),
+    new TypedEvent('greeting'),
   )
 
-  emitter.emitAsGenerator(new StrictEvent('greeting', { data: 'hello' }))
+  emitter.emitAsGenerator(new TypedEvent('greeting', { data: 'hello' }))
   emitter.emitAsGenerator(
     // @ts-expect-error Event is missing data.
-    new StrictEvent('greeting'),
+    new TypedEvent('greeting'),
   )
 })
 
@@ -51,7 +51,7 @@ it('emits a custom event', async () => {
     I = void,
     O = void,
     T extends string = string,
-  > extends StrictEvent<I, O, T> {}
+  > extends TypedEvent<I, O, T> {}
 
   const emitter = new Emitter<{
     greeting: GreetingEvent
@@ -81,7 +81,7 @@ it('emits a custom event with a custom data type', async () => {
     I extends string,
     O = void,
     T extends string = string,
-  > extends StrictEvent<I, O, T> {}
+  > extends TypedEvent<I, O, T> {}
 
   const emitter = new Emitter<{
     greeting: GreetingEvent<'john'>

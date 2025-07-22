@@ -1,8 +1,8 @@
 export type DefaultEventMap = {
-  [eventType: string]: StrictEvent<any, any>
+  [eventType: string]: TypedEvent<any, any>
 }
 
-export interface StrictEvent<
+export interface TypedEvent<
   DataType = void,
   ReturnType = any,
   EventType extends string = string,
@@ -14,13 +14,13 @@ const kDefaultPrevented = Symbol('kDefaultPrevented')
 const kPropagationStopped = Symbol('kPropagationStopped')
 const kImmediatePropagationStopped = Symbol('kImmediatePropagationStopped')
 
-export class StrictEvent<
+export class TypedEvent<
     DataType = void,
     ReturnType = any,
     EventType extends string = string,
   >
   extends MessageEvent<DataType>
-  implements StrictEvent<DataType, ReturnType, EventType>
+  implements TypedEvent<DataType, ReturnType, EventType>
 {
   /**
    * @note Keep a placeholder property with the return type
@@ -61,7 +61,7 @@ export class StrictEvent<
   }
 }
 
-type Brand<Event extends StrictEvent, EventType extends string> = Event & {
+type Brand<Event extends TypedEvent, EventType extends string> = Event & {
   type: EventType
 }
 
@@ -89,9 +89,9 @@ export namespace Emitter {
    * Returns an appropriate `Event` type for the given event type.
    *
    * @example
-   * const emitter = new Emitter<{ greeting: StrictEvent<string> }>()
+   * const emitter = new Emitter<{ greeting: TypedEvent<string> }>()
    * type GreetingEvent = Emitter.InferEventType<typeof emitter, 'greeting'>
-   * // StrictEvent<string>
+   * // TypedEvent<string>
    */
   export type EventType<
     Target extends Emitter,
@@ -103,15 +103,15 @@ export namespace Emitter {
     Target extends Emitter,
     EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
-  > = EventMap[EventType] extends StrictEvent<infer DataType> ? DataType : never
+  > = EventMap[EventType] extends TypedEvent<infer DataType> ? DataType : never
 
   /**
    * Returns the listener type for the given event type.
    *
    * @example
-   * const emitter = new Emitter<{ getTotalPrice: StrictEvent<Cart, number> }>()
+   * const emitter = new Emitter<{ getTotalPrice: TypedEvent<Cart, number> }>()
    * type Listener = Emitter.ListenerType<typeof emitter, 'getTotalPrice'>
-   * // (event: StrictEvent<Cart>) => number
+   * // (event: TypedEvent<Cart>) => number
    */
   export type ListenerType<
     Target extends Emitter,
@@ -127,7 +127,7 @@ export namespace Emitter {
    * Returns the return type of the listener for the given event type.
    *
    * @example
-   * const emitter = new Emitter<{ getTotalPrice: StrictEvent<Cart, number> }>()
+   * const emitter = new Emitter<{ getTotalPrice: TypedEvent<Cart, number> }>()
    * type ListenerReturnType = Emitter.InferListenerReturnType<typeof emitter, 'getTotalPrice'>
    * // number
    */
@@ -135,7 +135,7 @@ export namespace Emitter {
     Target extends Emitter,
     EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
-  > = EventMap[EventType] extends StrictEvent<unknown, infer ReturnType>
+  > = EventMap[EventType] extends TypedEvent<unknown, infer ReturnType>
     ? ReturnType
     : never
 }
@@ -451,7 +451,7 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
     this.#listeners[type].push(listener)
   }
 
-  #proxyEvent<Event extends StrictEvent>(
+  #proxyEvent<Event extends TypedEvent>(
     event: Event,
   ): { event: Event; revoke: () => void } {
     const { stopPropagation } = event

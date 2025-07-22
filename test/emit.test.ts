@@ -1,11 +1,11 @@
-import { Emitter, StrictEvent } from '#src/index.js'
+import { Emitter, TypedEvent } from '#src/index.js'
 
 it('emits event without any data', () => {
-  const emitter = new Emitter<{ hello: StrictEvent }>()
+  const emitter = new Emitter<{ hello: TypedEvent }>()
   const listener = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>()
   emitter.on('hello', listener)
 
-  const event = new StrictEvent('hello')
+  const event = new TypedEvent('hello')
   const hasListeners = emitter.emit(event)
 
   expect(hasListeners).toBe(true)
@@ -14,11 +14,11 @@ it('emits event without any data', () => {
 })
 
 it('emits event with data', () => {
-  const emitter = new Emitter<{ hello: StrictEvent<'world'> }>()
+  const emitter = new Emitter<{ hello: TypedEvent<'world'> }>()
   const listener = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>()
   emitter.on('hello', listener)
 
-  const event = new StrictEvent('hello', { data: 'world' as const })
+  const event = new TypedEvent('hello', { data: 'world' as const })
   const hasListeners = emitter.emit(event)
 
   expect(hasListeners).toBe(true)
@@ -27,13 +27,13 @@ it('emits event with data', () => {
 })
 
 it('calls all listeners for the event', () => {
-  const emitter = new Emitter<{ hello: StrictEvent }>()
+  const emitter = new Emitter<{ hello: TypedEvent }>()
   const listenerOne = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>()
   const listenerTwo = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>()
   emitter.on('hello', listenerOne)
   emitter.on('hello', listenerTwo)
 
-  const event = new StrictEvent('hello')
+  const event = new TypedEvent('hello')
   const hasListeners = emitter.emit(event)
 
   expect(hasListeners).toBe(true)
@@ -45,23 +45,23 @@ it('calls all listeners for the event', () => {
 
 it('does not call listeners for non-matching event', () => {
   const emitter = new Emitter<{
-    one: StrictEvent
-    two: StrictEvent
+    one: TypedEvent
+    two: TypedEvent
   }>()
   const listener = vi.fn<Emitter.ListenerType<typeof emitter, 'one'>>()
   emitter.on('one', listener)
-  const hasListeners = emitter.emit(new StrictEvent('two'))
+  const hasListeners = emitter.emit(new TypedEvent('two'))
 
   expect(hasListeners).toBe(false)
   expect(listener).not.toHaveBeenCalled()
 })
 
 it('removes the one-time listener after it has been called', () => {
-  const emitter = new Emitter<{ hello: StrictEvent }>()
+  const emitter = new Emitter<{ hello: TypedEvent }>()
   const listener = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>()
   emitter.once('hello', listener)
 
-  const event = new StrictEvent('hello')
+  const event = new TypedEvent('hello')
   expect(emitter.emit(event)).toBe(true)
   expect(listener).toHaveBeenCalledTimes(1)
   expect(listener).toHaveBeenCalledWith(event)
@@ -73,7 +73,7 @@ it('removes the one-time listener after it has been called', () => {
 })
 
 it('stops calling listeners if the immediate propagation is stopped', () => {
-  const emitter = new Emitter<{ hello: StrictEvent }>()
+  const emitter = new Emitter<{ hello: TypedEvent }>()
   const listenerOne = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>(
     (event) => {
       event.stopImmediatePropagation()
@@ -83,14 +83,14 @@ it('stops calling listeners if the immediate propagation is stopped', () => {
   emitter.on('hello', listenerOne)
   emitter.on('hello', listenerTwo)
 
-  expect(emitter.emit(new StrictEvent('hello'))).toBe(true)
+  expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
   expect(listenerOne).toHaveBeenCalledTimes(1)
   expect(listenerTwo).not.toHaveBeenCalled()
 })
 
 it('stops calling listeners if the propagation is stopped', async () => {
-  const emitterOne = new Emitter<{ greet: StrictEvent<string> }>()
-  const emitterTwo = new Emitter<{ greet: StrictEvent<string> }>()
+  const emitterOne = new Emitter<{ greet: TypedEvent<string> }>()
+  const emitterTwo = new Emitter<{ greet: TypedEvent<string> }>()
 
   const listenerOne = vi.fn<Emitter.ListenerType<typeof emitterOne, 'greet'>>()
   const listenerTwo = vi.fn<Emitter.ListenerType<typeof emitterOne, 'greet'>>(
@@ -103,7 +103,7 @@ it('stops calling listeners if the propagation is stopped', async () => {
   emitterTwo.on('greet', listenerOne)
 
   // Propagation can be prevented only when the event is shared.
-  const event = new StrictEvent('greet', { data: 'hello' })
+  const event = new TypedEvent('greet', { data: 'hello' })
 
   expect(emitterOne.emit(event)).toBe(true)
   expect(emitterTwo.emit(event)).toBe(false)

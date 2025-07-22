@@ -1,32 +1,32 @@
-import { Emitter, StrictEvent } from '#src/index.js'
+import { Emitter, TypedEvent } from '#src/index.js'
 
 it('infers event type', () => {
   const emitter = new Emitter<{
-    greeting: StrictEvent
+    greeting: TypedEvent
   }>()
 
   expectTypeOf<Emitter.EventType<typeof emitter, 'greeting'>>().toEqualTypeOf<
-    StrictEvent & { type: 'greeting' }
+    TypedEvent & { type: 'greeting' }
   >()
 })
 
 it('infers the type of an event with explicit data type', () => {
   const emitter = new Emitter<{
-    greeting: StrictEvent<string>
+    greeting: TypedEvent<string>
   }>()
 
   expectTypeOf<Emitter.EventType<typeof emitter, 'greeting'>>().toEqualTypeOf<
-    StrictEvent<string> & { type: 'greeting' }
+    TypedEvent<string> & { type: 'greeting' }
   >()
 })
 
 it('infers the type of an event with explicit return type', () => {
   const emitter = new Emitter<{
-    greeting: StrictEvent<string, number>
+    greeting: TypedEvent<string, number>
   }>()
 
   expectTypeOf<Emitter.EventType<typeof emitter, 'greeting'>>().toEqualTypeOf<
-    StrictEvent<string, number> & { type: 'greeting' }
+    TypedEvent<string, number> & { type: 'greeting' }
   >()
 })
 
@@ -35,7 +35,7 @@ it('infers type of a custom event', () => {
     I = unknown,
     O = unknown,
     T extends string = string,
-  > extends StrictEvent<I, O, T> {}
+  > extends TypedEvent<I, O, T> {}
 
   const emitter = new Emitter<{
     greeting: GreetingEvent
@@ -51,7 +51,7 @@ it('infers type of a custom event with explicit data type', () => {
     I,
     O = unknown,
     T extends string = string,
-  > extends StrictEvent<I, O, T> {}
+  > extends TypedEvent<I, O, T> {}
 
   const emitter = new Emitter<{
     greeting: GreetingEvent<string>
@@ -67,7 +67,7 @@ it('infers type of a custom event with explicit return type', () => {
     I,
     O = unknown,
     T extends string = string,
-  > extends StrictEvent<I, O, T> {}
+  > extends TypedEvent<I, O, T> {}
 
   const emitter = new Emitter<{
     greeting: GreetingEvent<string, number>

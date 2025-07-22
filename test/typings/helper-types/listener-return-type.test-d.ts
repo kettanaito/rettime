@@ -1,15 +1,15 @@
-import { Emitter, StrictEvent } from '#src/index.js'
+import { Emitter, TypedEvent } from '#src/index.js'
 
 it('defaults to `unknown` for events without a return type', () => {
   const emitter = new Emitter<{
-    a: StrictEvent<string>
+    a: TypedEvent<string>
   }>()
 
   expectTypeOf<Emitter.ListenerReturnType<typeof emitter, 'a'>>().toBeAny()
 })
 
 it('defaults to `unknown` for custom events without a return type', () => {
-  class CustomEvent<D, T extends string = string> extends StrictEvent<
+  class CustomEvent<D, T extends string = string> extends TypedEvent<
     D,
     unknown,
     T
@@ -24,7 +24,7 @@ it('defaults to `unknown` for custom events without a return type', () => {
 
 it('infers listener return type', async () => {
   const emitter = new Emitter<{
-    greeting: StrictEvent<string, number>
+    greeting: TypedEvent<string, number>
   }>()
 
   expectTypeOf<
@@ -33,11 +33,11 @@ it('infers listener return type', async () => {
 })
 
 it('infers listener return type of a custom event', async () => {
-  class GreetingEvent<
+  class GreetingEvent<D, R = any, T extends string = string> extends TypedEvent<
     D,
-    R = any,
-    T extends string = string,
-  > extends StrictEvent<D, R, T> {}
+    R,
+    T
+  > {}
 
   const emitter = new Emitter<{
     greeting: GreetingEvent<string, number>

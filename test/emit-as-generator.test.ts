@@ -1,18 +1,18 @@
-import { Emitter, StrictEvent } from '#src/index.js'
+import { Emitter, TypedEvent } from '#src/index.js'
 
 it('returns empty generator if no matching listeners found', async () => {
-  const emitter = new Emitter<{ hello: StrictEvent }>()
-  const result = emitter.emitAsGenerator(new StrictEvent('hello'))
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+  const result = emitter.emitAsGenerator(new TypedEvent('hello'))
   expect(result.next()).toEqual({ done: true, value: undefined })
 })
 
 it('returns sequential listener results', async () => {
-  const emitter = new Emitter<{ hello: StrictEvent<void, number> }>()
+  const emitter = new Emitter<{ hello: TypedEvent<void, number> }>()
   const listenerOne = vi.fn(() => 1)
   const listenerTwo = vi.fn(() => 2)
   emitter.on('hello', listenerOne)
   emitter.on('hello', listenerTwo)
-  const result = emitter.emitAsGenerator(new StrictEvent('hello'))
+  const result = emitter.emitAsGenerator(new TypedEvent('hello'))
 
   expect(result.next()).toEqual({ done: false, value: 1 })
   expect(listenerOne).toHaveBeenCalledTimes(1)
@@ -28,12 +28,12 @@ it('returns sequential listener results', async () => {
 })
 
 it('supports async generators as listeners', async () => {
-  const emitter = new Emitter<{ hello: StrictEvent<void, Promise<number>> }>()
+  const emitter = new Emitter<{ hello: TypedEvent<void, Promise<number>> }>()
   const listenerOne = vi.fn(async () => 1)
   const listenerTwo = vi.fn(async () => 2)
   emitter.on('hello', listenerOne)
   emitter.on('hello', listenerTwo)
-  const result = emitter.emitAsGenerator(new StrictEvent('hello'))
+  const result = emitter.emitAsGenerator(new TypedEvent('hello'))
 
   await expect(result.next().value).resolves.toBe(1)
   expect(listenerOne).toHaveBeenCalledTimes(1)
@@ -49,7 +49,7 @@ it('supports async generators as listeners', async () => {
 })
 
 it('supports breaking amidst the listener calls', async () => {
-  const emitter = new Emitter<{ hello: StrictEvent<void, number> }>()
+  const emitter = new Emitter<{ hello: TypedEvent<void, number> }>()
 
   const listenerOne = vi.fn(() => 1)
   const listenerTwo = vi.fn(() => 2)
@@ -57,7 +57,7 @@ it('supports breaking amidst the listener calls', async () => {
   emitter.on('hello', listenerTwo)
 
   for (const listenerResult of emitter.emitAsGenerator(
-    new StrictEvent('hello'),
+    new TypedEvent('hello'),
   )) {
     if (listenerResult === 1) {
       break
@@ -69,7 +69,7 @@ it('supports breaking amidst the listener calls', async () => {
 })
 
 it('stops calling listeners if immediate propagation is stopped', async () => {
-  const emitter = new Emitter<{ hello: StrictEvent<void, number> }>()
+  const emitter = new Emitter<{ hello: TypedEvent<void, number> }>()
   const listenerOne = vi.fn((event) => {
     event.stopImmediatePropagation()
     return 1
@@ -77,7 +77,7 @@ it('stops calling listeners if immediate propagation is stopped', async () => {
   const listenerTwo = vi.fn(() => 2)
   emitter.on('hello', listenerOne)
   emitter.on('hello', listenerTwo)
-  const result = emitter.emitAsGenerator(new StrictEvent('hello'))
+  const result = emitter.emitAsGenerator(new TypedEvent('hello'))
 
   expect(result.next()).toEqual({ done: false, value: 1 })
   expect(result.next()).toEqual({ done: true, value: undefined })
@@ -86,8 +86,8 @@ it('stops calling listeners if immediate propagation is stopped', async () => {
 })
 
 it('stops calling listeners if propagation is stopped', async () => {
-  const emitterOne = new Emitter<{ hello: StrictEvent<void, number> }>()
-  const emitterTwo = new Emitter<{ hello: StrictEvent<void, number> }>()
+  const emitterOne = new Emitter<{ hello: TypedEvent<void, number> }>()
+  const emitterTwo = new Emitter<{ hello: TypedEvent<void, number> }>()
 
   emitterOne.on('hello', () => 1)
   emitterOne.on('hello', () => {
@@ -98,7 +98,7 @@ it('stops calling listeners if propagation is stopped', async () => {
   emitterTwo.on('hello', () => 4)
 
   // Propagation can be prevented only when the event is shared.
-  const event = new StrictEvent('hello')
+  const event = new TypedEvent('hello')
   const resultOne = emitterOne.emitAsGenerator(event)
   const resultTwo = emitterTwo.emitAsGenerator(event)
 
