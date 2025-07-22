@@ -61,6 +61,9 @@ export class TypedEvent<
   }
 }
 
+/**
+ * Brands a TypedEvent or its subclass while preserving its (narrower) type.
+ */
 type Brand<Event extends TypedEvent, EventType extends string> = Event & {
   type: EventType
 }
