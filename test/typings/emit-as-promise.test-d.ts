@@ -3,8 +3,8 @@ import { Emitter, TypedEvent } from '#src/index.js'
 it('emits an event', async () => {
   const emitter = new Emitter<{ greeting: TypedEvent }>()
 
-  emitter.emit(new TypedEvent('greeting'))
-  emitter.emit(
+  await emitter.emitAsPromise(new TypedEvent('greeting'))
+  await emitter.emitAsPromise(
     // @ts-expect-error Redundant data.
     new TypedEvent('greeting', { data: 'hello' }),
   )
@@ -13,12 +13,10 @@ it('emits an event', async () => {
 it('emits an event with custom data type', async () => {
   const emitter = new Emitter<{ greeting: TypedEvent<string> }>()
 
-  emitter.emit(new TypedEvent('greeting', { data: 'hello' }))
-  // @ts-expect-error Missing data.
-  emitter.emit(new TypedEvent('greeting'))
-  emitter.emit(
-    // @ts-expect-error Invalid data type.
-    new TypedEvent('greeting', { data: 123 }),
+  await emitter.emitAsPromise(new TypedEvent('greeting', { data: 'hello' }))
+  await emitter.emitAsPromise(
+    // @ts-expect-error Event is missing data.
+    new TypedEvent('greeting'),
   )
 })
 
@@ -33,8 +31,8 @@ it('emits a custom event', async () => {
     greeting: GreetingEvent
   }>()
 
-  emitter.emit(new GreetingEvent('greeting'))
-  emitter.emit(
+  await emitter.emitAsPromise(new GreetingEvent('greeting'))
+  await emitter.emitAsPromise(
     // @ts-expect-error Redundant data.
     new GreetingEvent('greeting', { data: 'redundant' }),
   )
@@ -51,12 +49,12 @@ it('emits a custom event with a custom data type', async () => {
     greeting: GreetingEvent<'john'>
   }>()
 
-  emitter.emit(new GreetingEvent('greeting', { data: 'john' }))
-  emitter.emit(
+  await emitter.emitAsPromise(new GreetingEvent('greeting', { data: 'john' }))
+  await emitter.emitAsPromise(
     // @ts-expect-error Missing data.
     new GreetingEvent('greeting'),
   )
-  emitter.emit(
+  await emitter.emitAsPromise(
     // @ts-expect-error Invalid data type.
     new GreetingEvent('greeting', { data: 'redundant' }),
   )
