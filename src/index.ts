@@ -52,6 +52,10 @@ export class StrictEvent<
   }
 
   public stopImmediatePropagation(): void {
+    /**
+     * @note Despite `.stopPropagation()` and `.stopImmediatePropagation()` being defined
+     * in Node.js, they do nothing. It is safe to re-define them.
+     */
     super.stopImmediatePropagation()
     this[kImmediatePropagationStopped] = true
   }
@@ -244,8 +248,6 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
   public emit<Type extends keyof EventMap & string>(
     event: Brand<EventMap[Type], Type>,
   ): boolean {
-    this.#wrapEvent(event)
-
     if (
       !this.#listeners[event.type] ||
       this.#listeners[event.type].length === 0
@@ -253,15 +255,17 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
       return false
     }
 
+    const proxiedEvent = this.#proxyEvent(event)
+
     for (const listener of this.#listeners[event.type]) {
       if (
-        event[kPropagationStopped] != null &&
-        event[kPropagationStopped] !== this
+        proxiedEvent.event[kPropagationStopped] != null &&
+        proxiedEvent.event[kPropagationStopped] !== this
       ) {
         return false
       }
 
-      if (event[kImmediatePropagationStopped]) {
+      if (proxiedEvent.event[kImmediatePropagationStopped]) {
         break
       }
 
@@ -269,9 +273,10 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
         continue
       }
 
-      this.#callListener(listener, event)
+      this.#callListener(listener, proxiedEvent.event)
     }
 
+    proxiedEvent.revoke()
     this.#eventsCache.delete([event.type, event.data])
 
     return true
@@ -286,8 +291,6 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
   public async emitAsPromise<Type extends keyof EventMap & string>(
     event: Brand<EventMap[Type], Type>,
   ): Promise<Array<Emitter.ListenerReturnType<typeof this, Type, EventMap>>> {
-    this.#wrapEvent(event)
-
     if (
       !this.#listeners[event.type] ||
       this.#listeners[event.type].length === 0
@@ -299,15 +302,17 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
       Promise<Emitter.ListenerReturnType<typeof this, Type, EventMap>>
     > = []
 
+    const proxiedEvent = this.#proxyEvent(event)
+
     for (const listener of this.#listeners[event.type]) {
       if (
-        event[kPropagationStopped] != null &&
-        event[kPropagationStopped] !== this
+        proxiedEvent.event[kPropagationStopped] != null &&
+        proxiedEvent.event[kPropagationStopped] !== this
       ) {
         return []
       }
 
-      if (event[kImmediatePropagationStopped]) {
+      if (proxiedEvent.event[kImmediatePropagationStopped]) {
         break
       }
 
@@ -317,10 +322,11 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
 
       pendingListeners.push(
         // Awaiting individual listeners guarantees their call order.
-        await Promise.resolve(this.#callListener(listener, event)),
+        await Promise.resolve(this.#callListener(listener, proxiedEvent.event)),
       )
     }
 
+    proxiedEvent.revoke()
     this.#eventsCache.delete([event.type, event.data])
 
     return Promise.allSettled(pendingListeners).then((results) => {
@@ -338,8 +344,6 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
   public *emitAsGenerator<Type extends keyof EventMap & string>(
     event: Brand<EventMap[Type], Type>,
   ): Generator<Emitter.ListenerReturnType<typeof this, Type, EventMap>> {
-    this.#wrapEvent(event)
-
     if (
       !this.#listeners[event.type] ||
       this.#listeners[event.type].length === 0
@@ -347,15 +351,17 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
       return
     }
 
+    const proxiedEvent = this.#proxyEvent(event)
+
     for (const listener of this.#listeners[event.type]) {
       if (
-        event[kPropagationStopped] != null &&
-        event[kPropagationStopped] !== this
+        proxiedEvent.event[kPropagationStopped] != null &&
+        proxiedEvent.event[kPropagationStopped] !== this
       ) {
         return
       }
 
-      if (event[kImmediatePropagationStopped]) {
+      if (proxiedEvent.event[kImmediatePropagationStopped]) {
         break
       }
 
@@ -363,9 +369,10 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
         continue
       }
 
-      yield this.#callListener(listener, event)
+      yield this.#callListener(listener, proxiedEvent.event)
     }
 
+    proxiedEvent.revoke()
     this.#eventsCache.delete([event.type, event.data])
   }
 
@@ -451,83 +458,24 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
     this.#listeners[type].push(listener)
   }
 
-  // public createEvent<
-  //   Type extends keyof EventMap & string,
-  //   EmitterEvent extends Emitter.EventType<
-  //     typeof this,
-  //     Type,
-  //     EventMap
-  //   > = Emitter.EventType<typeof this, Type, EventMap>,
-  // >(
-  //   ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
-  //     ? [type: Type]
-  //     : [type: Type, data: Emitter.EventDataType<typeof this, Type, EventMap>]
-  // ): EmitterEvent {
-  //   const [type, data] = args
-  //   const cachedEvent = this.#eventsCache.get([type, data])
+  #proxyEvent<Event extends StrictEvent>(
+    event: Event,
+  ): { event: Event; revoke: () => void } {
+    const { stopPropagation } = event
 
-  //   if (cachedEvent) {
-  //     return cachedEvent as EmitterEvent
-  //   }
+    event.stopPropagation = new Proxy(event.stopPropagation, {
+      apply: (target, thisArg, argArray) => {
+        event[kPropagationStopped] = this
+        return Reflect.apply(target, thisArg, argArray)
+      },
+    })
 
-  //   let event =
-  //     data == null
-  //       ? (new Event(type, { cancelable: true }) as EmitterEvent)
-  //       : (new MessageEvent(type, { data, cancelable: true }) as EmitterEvent)
-
-  //   Object.defineProperties(event, {
-  //     defaultPrevented: {
-  //       enumerable: false,
-  //       writable: true,
-  //       value: false,
-  //     },
-  //     preventDefault: {
-  //       enumerable: false,
-  //       value: new Proxy(event.preventDefault, {
-  //         apply: (target, thisArg, argArray) => {
-  //           /**
-  //            * @note Node.js 18 does NOT update the `defaultPrevented` value
-  //            * when you call `preventDefault()`. This is a bug in Node.js.
-  //            *
-  //            * @fixme Remove this hack when Node.js 20 is the minimal version.
-  //            */
-  //           Reflect.set(event, 'defaultPrevented', true)
-  //           return Reflect.apply(target, thisArg, argArray)
-  //         },
-  //       }),
-  //     },
-  //     stopPropagation: {
-  //       enumerable: false,
-  //       value: new Proxy(event.stopPropagation, {
-  //         apply: (target, thisArg, argArray) => {
-  //           /**
-  //            * @note Propagation is also stopped when the immediate propagation is stopped.
-  //            * Because of that, store the reference to the Emitter instance that stopped it.
-  //            * (Node.js makes `thisArg` to be the `Event` that stops it).
-  //            */
-  //           event[kPropagationStopped] = this
-  //           return Reflect.apply(target, thisArg, argArray)
-  //         },
-  //       }),
-  //     },
-  //     stopImmediatePropagation: {
-  //       enumerable: false,
-  //       value: new Proxy(event.stopImmediatePropagation, {
-  //         apply(target, thisArg, argArray) {
-  //           event[kImmediatePropagationStopped] = true
-  //           return Reflect.apply(target, thisArg, argArray)
-  //         },
-  //       }),
-  //     },
-  //   })
-
-  //   this.#eventsCache.set([type, data], event)
-
-  //   return event
-  // }
-
-  #wrapEvent(event: StrictEvent): void {
-    implementStopPropagation(event, this)
+    return {
+      event,
+      revoke() {
+        event.stopPropagation = stopPropagation
+      },
+    }
   }
 
   #callListener<Type extends keyof EventMap & string>(
@@ -558,22 +506,4 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
     this.#abortControllers.set(listener, abortController)
     return abortController
   }
-}
-
-function implementStopPropagation(event: StrictEvent, emitter: Emitter): void {
-  const { stopPropagation } = event
-
-  /**
-   * @fixme Because every .emit() of any emitter re-defines this property,
-   * the "who has stopped propagation" tracking won't work.
-   */
-
-  Object.defineProperty(event, 'stopPropagation', {
-    enumerable: false,
-    writable: true,
-    value() {
-      stopPropagation()
-      this[kPropagationStopped] = emitter
-    },
-  })
 }
