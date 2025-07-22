@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "rettime",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "description": "A type-safe marriage of `EventTarget` and `EventEmitter`.",
   "main": "./build/index.js",
   "types": "./build/index.d.ts",
