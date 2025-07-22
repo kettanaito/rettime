@@ -143,13 +143,11 @@ export namespace Emitter {
 export class Emitter<EventMap extends DefaultEventMap = {}> {
   #listeners: InternalListenersMap<typeof this, EventMap>
   #listenerOptions: WeakMap<Function, AddEventListenerOptions>
-  #eventsCache: WeakMap<[string, unknown], Event>
   #abortControllers: WeakMap<Function, AbortController>
 
   constructor() {
     this.#listeners = {} as InternalListenersMap<typeof this, EventMap>
     this.#listenerOptions = new WeakMap()
-    this.#eventsCache = new WeakMap()
     this.#abortControllers = new WeakMap()
   }
 
@@ -277,7 +275,6 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
     }
 
     proxiedEvent.revoke()
-    this.#eventsCache.delete([event.type, event.data])
 
     return true
   }
@@ -327,7 +324,6 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
     }
 
     proxiedEvent.revoke()
-    this.#eventsCache.delete([event.type, event.data])
 
     return Promise.allSettled(pendingListeners).then((results) => {
       return results.map((result) =>
@@ -373,7 +369,6 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
     }
 
     proxiedEvent.revoke()
-    this.#eventsCache.delete([event.type, event.data])
   }
 
   /**
@@ -395,7 +390,6 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
       if (existingListener === listener) {
         this.#listenerOptions.delete(existingListener)
         this.#abortControllers.delete(existingListener)
-        this.#eventsCache.delete([type, existingListener])
         continue
       }
 
@@ -416,7 +410,6 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
       this.#listeners = {} as InternalListenersMap<typeof this>
       this.#listenerOptions = new WeakMap()
       this.#abortControllers = new WeakMap()
-      this.#eventsCache = new WeakMap()
       return
     }
 
