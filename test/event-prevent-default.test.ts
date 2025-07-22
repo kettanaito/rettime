@@ -1,7 +1,7 @@
-import { Emitter } from '../src'
+import { Emitter, TypedEvent } from '#src/index.js'
 
 it('prevents the default of the event', () => {
-  const emitter = new Emitter<{ greet: [string] }>()
+  const emitter = new Emitter<{ greet: TypedEvent<string> }>()
 
   emitter.on('greet', (event) => {
     event.preventDefault()
@@ -13,6 +13,6 @@ it('prevents the default of the event', () => {
     expect(event.defaultPrevented).toBe(true)
   })
 
-  emitter.emit('greet', 'world')
+  emitter.emit(new TypedEvent('greet', { data: 'hello' }))
   expect.assertions(2)
 })

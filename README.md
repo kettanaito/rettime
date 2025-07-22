@@ -1,6 +1,6 @@
 # Rettime
 
-Type-safe dependency-free EventTarget-inspired event emitter for browser and Node.js.
+A type-safe marriage of `EventTarget` and `EventEmitter`.
 
 ## Features
 
@@ -27,11 +27,11 @@ The `EventTarget` API is fantastic. It works in the browser and in Node.js, disp
 
 ### Why not just `Emitter` (in Node.js)?
 
-The `Emitter` API in Node.js is great as well. But...
+The `Emitter` API in Node.js is great, but it has its own downsides:
 
 - Node.js-specific. `Emitter` does not work in the browser.
-- Complete lack of type safety.
-- No concept of event cancellation. Events emit to all listeners, and there's nothing you can do about it.
+- Lacks any type safety.
+- No concept of `.stopPropagation()` and `.stopImmediatePropagation()`. Those methods are defined but literally do nothing.
 
 ## Install
 
@@ -41,29 +41,66 @@ npm install rettime
 
 ## API
 
+### `TypedEvent`
+
+`TypedEvent` is a subset of `MessageEvent` that allows for type-safe event declaration.
+
+```ts
+new TypedEvent<DataType, ReturnType, EventType>(type: EventType, { data: DataType })
+```
+
+> The `data` argument depends on the `DataType` of your event. Use `void` if the event must not send any data.
+
+#### Custom events
+
+You can implement custom events by extending the default `TypedEvent` class and forwarding the type arguments that it expects:
+
+```ts
+class GreetingEvent<
+  DataType = void,
+  ReturnType = any,
+  EventType extends string = string,
+> extends TypedEvent<DataType, ReturnType, EventType> {
+  public id: string
+}
+
+const emitter = new Emitter<{ greeting: GreetingEvent<'john'> }>()
+
+emitter.on('greeting', (event) => {
+  console.log(event instanceof GreetingEvent) // true
+  console.log(event instanceof TypedEvent) // true
+  console.log(event instanceof MessageEvent) // true
+
+  console.log(event.type) // "greeting"
+  console.log(event.data) // "john"
+  console.log(event.id) // string
+})
+```
+
 ### `Emitter`
 
 ```ts
-new Emitter<Events>()
+new Emitter<EventMap>()
 ```
 
-The `Events` type argument allows you describe the supported event types, their payload, and the return type of their event listeners.
+The `EventMap` type argument allows you describe the supported event types, their payload, and the return type of their event listeners.
 
 ```ts
-// [eventPayloadType, listenerReturnType]
-const emitter = new Emitter<{ hello: [string, number] }>()
+import { Emitter, TypedEvent } from 'rettime'
+
+const emitter = new Emitter<{ hello: TypedEvent<string, number> }>()
 
 emitter.on('hello', () => 1) // ✅
 emitter.on('hello', () => 'oops') // ❌ string not assignable to type number
 
-emitter.emit('hello', 'John') // ✅
-emitter.emit('hello', 123) // ❌ number is not assignable to type string
-emitter.emit('hello') // ❌ missing data argument of type string
+emitter.emit(new TypedEvent('hello', { data: 'John' })) // ✅
+emitter.emit(new TypedEvent('hello', { data: 123 })) // ❌ number is not assignable to type string
+emitter.emit(new TypedEvent('hello')) // ❌ missing data argument of type string
 
-emitter.emit('unknown') // ❌ "unknown" does not satisfy "hello"
+emitter.emit(new TypedEvent('unknown')) // ❌ "unknown" does not satisfy "hello"
 ```
 
-#### Describing types
+#### Describing events
 
 The `Emitter` class requires a type argument that describes the event map. If you do not provide that argument, adding listeners or emitting events will produce a type error as your emitter doesn't have an event map defined.
 
@@ -71,44 +108,49 @@ An event map is an object of the following shape:
 
 ```ts
 {
-  [type: string]: [args: unknown, returnValue?: unknown]
+  [type: string]: TypedEvent
 }
 ```
 
 The `type` is a string indicating the event type (e.g. `greet` or `ping`). The array it accepts has two members: `args` describes the arguments accepted by this event (can also be `never` for events without arguments) and `returnValue` is an optional type for the data returned from the listeners for this event.
 
-Let's say you want to define a `greet` event that expects a name as an argument:
+Let's say you want to define a `greet` event that expects a user name as data and returns a greeting string:
 
 ```ts
-const emitter = new Emitter<{ greet: [name: string] }>()
+import { Emitter, TypedEvent } from 'rettime'
+
+const emitter = new Emitter<{ greet: TypedEvent<string, string> }>()
+
 emitter.on('greet', (event) => {
   console.log(`Hello, ${event.data}!`)
 })
-emitter.emit('greet', 'John')
+emitter.emit(new TypedEvent('greet', { data: 'John' }))
 // "Hello, John!"
 ```
-
-> Notice that you can use labeled array member types for clarity.
 
 Here's another example where we define a `ping` event that has no arguments but returns a timestamp for each ping:
 
 ```ts
-const emitter = new Emitter<{ ping: [never, number] }>()
+const emitter = new Emitter<{ ping: TypedEvent<void, number> }>()
 emitter.on('ping', () => Date.now())
-const results = await emitter.emitAsPromise('ping')
+const results = await emitter.emitAsPromise(new TypedEvent('ping'))
 // [1745658424732]
 ```
+
+> [!IMPORTANT]
+> When providing type arguments to your `TypedEvents`, you **do not** need to provide the `EventType` argument—it will be inferred from your event map.
 
 ### `.on(type, listener[, options])`
 
 Adds an event listener for the given event type.
 
 ```ts
-const emitter = new Emitter<{ hello: [string] }>()
+import { Emitter, TypedEvent } from 'rettime'
+
+const emitter = new Emitter<{ hello: TypedEvent<string> }>()
 
 emitter.on('hello', (event) => {
-  // `event` is a `MessageEvent` instance since the `hello` event
-  // defined `string` as its data.
+  // `event` is a `TypedEvent` instance derived from `MessageEvent`.
   console.log(event.data)
 })
 ```
@@ -137,12 +179,14 @@ Adds a one-time event listener for the given event type.
 Prepends a listener for the given event type.
 
 ```ts
-const emitter = new Emitter<{ hello: [string, number] }>()
+import { Emitter, TypedEvent } from 'rettime'
+
+const emitter = new Emitter<{ hello: TypedEvent<void, number> }>()
 
 emitter.on('hello', () => 1)
 emitter.earlyOn('hello', () => 2)
 
-const results = await emitter.emitAsPromise('hello')
+const results = await emitter.emitAsPromise(new TypedEvent('hello'))
 // [2, 1]
 ```
 
@@ -155,21 +199,23 @@ Prepends a one-time listener for the given event type.
 Emits the given event with optional data.
 
 ```ts
-const emitter = new Emitter<{ hello: [string] }>()
+import { Emitter, TypedEvent } from 'rettime'
+
+const emitter = new Emitter<{ hello: TypedEvent<string> }>()
 
 emitter.on('hello', (event) => console.log(event.data))
 
-emitter.emit('hello', 'John')
+emitter.emit(new TypedEvent('hello', 'John'))
 ```
-
-All event emission methods also support a typed event instance as an agument. Learn more in the `.createEvent()` section below.
 
 ### `.emitAsPromise(type[, data])`
 
-Emits the given event with optional data, and returns a Promise that resolves with the returned data of all matching event listeners, or rejects whenever any of the matching event listeners throws an error.
+Emits the given event and returns a Promise that resolves with the returned data of all matching event listeners, or rejects whenever any of the matching event listeners throws an error.
 
 ```ts
-const emitter = new Emitter<{ hello: [number, Promise<number>] }>()
+import { Emitter, TypedEvent } from 'rettime'
+
+const emitter = new Emitter<{ hello: TypedEvent<number, Promise<number>> }>()
 
 emitter.on('hello', async (event) => {
   await sleep(100)
@@ -177,7 +223,7 @@ emitter.on('hello', async (event) => {
 })
 emitter.on('hello', async (event) => event.data + 2)
 
-const values = await emitter.emitAsPromise('hello', 1)
+const values = await emitter.emitAsPromise(new TypedEvent('hello', { data: 1 }))
 // [2, 3]
 ```
 
@@ -185,15 +231,19 @@ const values = await emitter.emitAsPromise('hello', 1)
 
 ### `.emitAsGenerator(type[, data])`
 
-Emits the given event with optional data, and returns a generator function that exhausts all matching event listeners. Using a generator gives you granular control over what listeners are called.
+Emits the given event and returns a generator function that exhausts all matching event listeners. Using a generator gives you granular control over what listeners are called.
 
 ```ts
-const emitter = new Emitter<{ hello: [string, number] }>()
+import { Emitter, TypedEvent } from 'rettime'
+
+const emitter = new Emitter<{ hello: TypedEvent<string, number> }>()
 
 emitter.on('hello', () => 1)
 emitter.on('hello', () => 2)
 
-for (const listenerResult of emitter.emitAsGenerator('hello', 'John')) {
+for (const listenerResult of emitter.emitAsGenerator(
+  new TypedEvent('hello', { data: 'John' }),
+)) {
   // Stop event emission if a listener returns a particular value.
   if (listenerResult === 1) {
     break
@@ -217,67 +267,44 @@ Removes the event listener for the given event type.
 
 Removes all event listeners for the given event type. If no event `type` is provided, removes all existing event listeners.
 
-### `.createEvent(type[, data])`
-
-Creates a strongly-typed `Event` instance for the given `type`. Optionally, accepts `data` if the event type describes one.
-
-```ts
-const emitter = new Emitter<{ greet: [string]; ping: [never] }>()
-
-const greetEvent = emitter.createEvent('greet', 'John')
-const pingEvent = emitter.createEvent('ping')
-```
-
-> The `.createEvent()` method is primarily meant for creating event instances that are _going to be reused across different emitters_. That is handy if you want to implement `event.stopPropagation()` in your event flow since that requires a single event shared between multiple emitters.
-
-You can pass a typed event to any event emission method of any `Emitter` to be emitted:
-
-```ts
-const greetEvent = emitter.createEvent('greet', 'John')
-
-emitter.emit(greetEvent)
-await emitter.emitAsPromise(greetEvent)
-emitter.emitAsGenerator(greetEvent)
-```
-
 ## Types
 
-Apart from being strongly-typed from the ground up, the library provides you with a few helper types to annotate your own implementations.
+This library also comes with a set of helper types to make your life easier.
 
-### `ListenerType`
-
-Returns the type of the given event's listener.
-
-```ts
-import { Emitter } from 'rettime'
-
-const emitter = new Emitter<{ greeting: [string] }>()
-type GreetingListener = Emitter.ListenerType<typeof emitter, 'greeting'>
-// (event: MessageEvent<string>) => void
-```
-
-> The `ListenerType` helper is in itself type-safe, allowing only known event types as the second argument.
-
-### `ListenerReturnType`
-
-Returns the return type of the given event's listener.
-
-```ts
-import { Emitter } from 'rettime'
-
-const emitter = new Emitter<{ getTotalPrice: [Cart, number] }>()
-type CartTotal = Emitter.ListenerReturnType<typeof emitter, 'getTotalPrice'>
-// number
-```
-
-### `EventType`
+### `Emitter.EventType`
 
 Returns the `Event` type (or its subtype) representing the given listener.
 
 ```ts
-import { Emitter } from 'rettime'
+import { Emitter, TypedEvent } from 'rettime'
 
-const emitter = new Emitter<{ greeting: [string] }>()
+const emitter = new Emitter<{ greeting: TypedEvent<'john'> }>()
 type GreetingEvent = Emitter.EventType<typeof emitter, 'greeting'>
-// MessageEvent<string>
+// TypedEvent<'john'>
+```
+
+### `Emitter.ListenerType`
+
+Returns the type of the given event's listener.
+
+```ts
+import { Emitter, TypedEvent } from 'rettime'
+
+const emitter = new Emitter<{ greeting: TypedEvent<string, number[]> }>()
+type GreetingListener = Emitter.ListenerType<typeof emitter, 'greeting'>
+// (event: TypedEvent<string>) => number[]
+```
+
+> The `ListenerType` helper is in itself type-safe, allowing only known event types as the second argument.
+
+### `Emitter.ListenerReturnType`
+
+Returns the return type of the given event's listener.
+
+```ts
+import { Emitter, TypedEvent } from 'rettime'
+
+const emitter = new Emitter<{ getTotalPrice: TypedEvent<Cart, number> }>()
+type CartTotal = Emitter.ListenerReturnType<typeof emitter, 'getTotalPrice'>
+// number
 ```

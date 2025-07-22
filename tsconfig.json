@@ -5,6 +5,10 @@
     "target": "es2022",
     "moduleResolution": "bundler",
     "types": ["vitest/globals"],
-    "lib": ["dom", "esnext"]
+    "lib": ["dom", "esnext"],
+    "baseUrl": ".",
+    "paths": {
+      "#src/*": ["./src/*"]
+    }
   }
 }

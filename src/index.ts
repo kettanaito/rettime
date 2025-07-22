@@ -1,122 +1,168 @@
 export type DefaultEventMap = {
-  [type: string]: [payload: unknown, returnValue?: unknown]
+  [eventType: string]: TypedEvent<any, any>
 }
 
-type TypedEvent<T extends string> = Event & { type: T }
-
-interface StrictEventListener<
-  Event extends globalThis.Event,
-  ReturnType = void,
-> {
-  (event: Event): [ReturnType] extends [undefined] ? void : ReturnType
+export interface TypedEvent<
+  DataType = void,
+  ReturnType = any,
+  EventType extends string = string,
+> extends Omit<MessageEvent<DataType>, 'type'> {
+  type: EventType
 }
 
-type InferEventMap<Target extends Emitter<any>> = Target extends Emitter<
-  infer T
->
-  ? T
-  : never
-
-type DataToEvent<Type extends string, Data extends unknown> = [Data] extends [
-  never,
-]
-  ? TypedEvent<Type>
-  : MessageEvent<Data> & { type: Type }
-
-type InternalListenersMap<
-  Target extends Emitter<any>,
-  EventMap extends DefaultEventMap = InferEventMap<Target>,
-  Type extends string = keyof EventMap & string,
-> = Record<
-  keyof EventMap,
-  Array<
-    StrictEventListener<
-      Emitter.EventType<Target, Type, EventMap>,
-      Emitter.ListenerReturnType<Target, Type, EventMap>
-    >
-  >
->
-
-type EmmiterListenerOptions = {
-  signal?: AbortSignal
-}
-
+const kDefaultPrevented = Symbol('kDefaultPrevented')
 const kPropagationStopped = Symbol('kPropagationStopped')
 const kImmediatePropagationStopped = Symbol('kImmediatePropagationStopped')
 
+export class TypedEvent<
+    DataType = void,
+    ReturnType = any,
+    EventType extends string = string,
+  >
+  extends MessageEvent<DataType>
+  implements TypedEvent<DataType, ReturnType, EventType>
+{
+  /**
+   * @note Keep a placeholder property with the return type
+   * because the type must be set somewhere in order to be
+   * correctly associated and inferred from the event.
+   */
+  #returnType: ReturnType;
+
+  [kDefaultPrevented]: boolean;
+  [kPropagationStopped]?: Emitter;
+  [kImmediatePropagationStopped]?: boolean
+
+  constructor(
+    ...args: [DataType] extends [void]
+      ? [type: EventType]
+      : [type: EventType, init: { data: DataType }]
+  ) {
+    super(args[0], args[1])
+    this[kDefaultPrevented] = false
+  }
+
+  get defaultPrevented(): boolean {
+    return this[kDefaultPrevented]
+  }
+
+  public preventDefault(): void {
+    super.preventDefault()
+    this[kDefaultPrevented] = true
+  }
+
+  public stopImmediatePropagation(): void {
+    /**
+     * @note Despite `.stopPropagation()` and `.stopImmediatePropagation()` being defined
+     * in Node.js, they do nothing. It is safe to re-define them.
+     */
+    super.stopImmediatePropagation()
+    this[kImmediatePropagationStopped] = true
+  }
+}
+
+/**
+ * Brands a TypedEvent or its subclass while preserving its (narrower) type.
+ */
+type Brand<Event extends TypedEvent, EventType extends string> = Event & {
+  type: EventType
+}
+
+type InferEventMap<Target extends Emitter> = Target extends Emitter<
+  infer EventMap
+>
+  ? EventMap
+  : never
+
+type InternalListenersMap<
+  Target extends Emitter,
+  EventMap extends DefaultEventMap = InferEventMap<Target>,
+  EventType extends string = keyof EventMap & string,
+> = Record<
+  keyof EventMap,
+  Array<Emitter.ListenerType<Target, EventType, EventMap>>
+>
+
+export type TypedListenerOptions = {
+  signal?: AbortSignal
+}
+
 export namespace Emitter {
+  /**
+   * Returns an appropriate `Event` type for the given event type.
+   *
+   * @example
+   * const emitter = new Emitter<{ greeting: TypedEvent<string> }>()
+   * type GreetingEvent = Emitter.InferEventType<typeof emitter, 'greeting'>
+   * // TypedEvent<string>
+   */
+  export type EventType<
+    Target extends Emitter,
+    EventType extends keyof EventMap & string,
+    EventMap extends DefaultEventMap = InferEventMap<Target>,
+  > = Brand<EventMap[EventType], EventType>
+
+  export type EventDataType<
+    Target extends Emitter,
+    EventType extends keyof EventMap & string,
+    EventMap extends DefaultEventMap = InferEventMap<Target>,
+  > = EventMap[EventType] extends TypedEvent<infer DataType> ? DataType : never
+
   /**
    * Returns the listener type for the given event type.
    *
    * @example
-   * const emitter = new Emitter<{ getTotalPrice: [Cart, number] }>()
-   * type Listener = ListenerType<typeof emitter, 'getTotalPrice'>
-   * // (event: MessageEvent<Cart>) => number
+   * const emitter = new Emitter<{ getTotalPrice: TypedEvent<Cart, number> }>()
+   * type Listener = Emitter.ListenerType<typeof emitter, 'getTotalPrice'>
+   * // (event: TypedEvent<Cart>) => number
    */
   export type ListenerType<
-    Target extends Emitter<any>,
+    Target extends Emitter,
     Type extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
-  > = StrictEventListener<
-    Emitter.EventType<Target, Type, EventMap>,
-    Emitter.ListenerReturnType<Target, Type, EventMap>
-  >
+  > = (
+    event: Emitter.EventType<Target, Type, EventMap>,
+  ) => Emitter.ListenerReturnType<Target, Type, EventMap> extends [void]
+    ? void
+    : Emitter.ListenerReturnType<Target, Type, EventMap>
 
   /**
    * Returns the return type of the listener for the given event type.
    *
    * @example
-   * const emitter = new Emitter<{ getTotalPrice: [Cart, number] }>()
-   * type ListenerReturnType = InferListenerReturnType<typeof emitter, 'getTotalPrice'>
+   * const emitter = new Emitter<{ getTotalPrice: TypedEvent<Cart, number> }>()
+   * type ListenerReturnType = Emitter.InferListenerReturnType<typeof emitter, 'getTotalPrice'>
    * // number
    */
   export type ListenerReturnType<
-    Target extends Emitter<any>,
-    Type extends keyof EventMap & string,
+    Target extends Emitter,
+    EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
-  > = EventMap[Type][1]
-
-  /**
-   * Returns an appropriate `Event` type for the given event type.
-   *
-   * @example
-   * const emitter = new Emitter<{ greeting: [string] }>()
-   * type GreetingEvent = InferEventType<typeof emitter, 'greeting'>
-   * // MessageEvent<string>
-   */
-  export type EventType<
-    Target extends Emitter<any>,
-    Type extends keyof EventMap & string,
-    EventMap extends DefaultEventMap = InferEventMap<Target>,
-  > = DataToEvent<Type, Emitter.EventDataType<Target, Type, EventMap>>
-
-  export type EventDataType<
-    Target extends Emitter<any>,
-    Type extends keyof EventMap & string,
-    EventMap extends DefaultEventMap = InferEventMap<Target>,
-  > = EventMap[Type][0]
+  > = EventMap[EventType] extends TypedEvent<unknown, infer ReturnType>
+    ? ReturnType
+    : never
 }
 
 export class Emitter<EventMap extends DefaultEventMap = {}> {
   #listeners: InternalListenersMap<typeof this, EventMap>
   #listenerOptions: WeakMap<Function, AddEventListenerOptions>
-  #eventsCache: WeakMap<[string, unknown], Event>
   #abortControllers: WeakMap<Function, AbortController>
 
   constructor() {
     this.#listeners = {} as InternalListenersMap<typeof this, EventMap>
     this.#listenerOptions = new WeakMap()
-    this.#eventsCache = new WeakMap()
     this.#abortControllers = new WeakMap()
   }
 
   /**
    * Adds a listener for the given event type.
+   *
+   * @returns {AbortController} An `AbortController` that can be used to remove the listener.
    */
-  public on<Type extends keyof EventMap & string>(
-    type: Type,
-    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
-    options?: EmmiterListenerOptions,
+  public on<EventType extends keyof EventMap & string>(
+    type: EventType,
+    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
+    options?: TypedListenerOptions,
   ): AbortController {
     this.#addListener(type, listener)
 
@@ -132,11 +178,13 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
 
   /**
    * Adds a one-time listener for the given event type.
+   *
+   * @returns {AbortController} An `AbortController` that can be used to remove the listener.
    */
-  public once<Type extends keyof EventMap & string>(
-    type: Type,
-    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
-    options?: EmmiterListenerOptions,
+  public once<EventType extends keyof EventMap & string>(
+    type: EventType,
+    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
+    options?: TypedListenerOptions,
   ): AbortController {
     this.#addListener(type, listener)
 
@@ -153,11 +201,13 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
 
   /**
    * Prepends a listener for the given event type.
+   *
+   * @returns {AbortController} An `AbortController` that can be used to remove the listener.
    */
-  public earlyOn<Type extends keyof EventMap & string>(
-    type: Type,
-    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
-    options?: EmmiterListenerOptions,
+  public earlyOn<EventType extends keyof EventMap & string>(
+    type: EventType,
+    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
+    options?: TypedListenerOptions,
   ): AbortController {
     if (!this.#listeners[type]) {
       this.#listeners[type] = []
@@ -178,10 +228,10 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
   /**
    * Prepends a one-time listener for the given event type.
    */
-  public earlyOnce<Type extends keyof EventMap & string>(
-    type: Type,
-    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
-    options?: EmmiterListenerOptions,
+  public earlyOnce<EventType extends keyof EventMap & string>(
+    type: EventType,
+    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
+    options?: TypedListenerOptions,
   ): AbortController {
     this.earlyOn(type, listener)
 
@@ -197,51 +247,31 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
   }
 
   /**
-   * Emits the given event type. Accepts the data as the
-   * second argument if the event contains data.
+   * Emits the given typed event.
    *
    * @returns {boolean} Returns `true` if the event had any listeners, `false` otherwise.
    */
-  public emit<Type extends keyof EventMap & string>(
-    event: Emitter.EventType<typeof this, Type, EventMap>,
-  ): boolean
-  public emit<Type extends keyof EventMap & string>(
-    ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
-      ? [type: Type]
-      : [type: Type, data: Emitter.EventDataType<typeof this, Type, EventMap>]
-  ): boolean
-
-  public emit<Type extends keyof EventMap & string>(
-    ...args:
-      | [Emitter.EventType<typeof this, Type, EventMap>]
-      | (Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
-          ? [type: Type]
-          : [
-              type: Type,
-              data: Emitter.EventDataType<typeof this, Type, EventMap>,
-            ])
+  public emit<EventType extends keyof EventMap & string>(
+    event: Brand<EventMap[EventType], EventType>,
   ): boolean {
-    const [eventOrType, data] = args
-    const isEvent = eventOrType instanceof Event
-    const type = isEvent ? eventOrType.type : eventOrType
-
-    if (!this.#listeners[type] || this.#listeners[type].length === 0) {
+    if (
+      !this.#listeners[event.type] ||
+      this.#listeners[event.type].length === 0
+    ) {
       return false
     }
 
-    const event = isEvent
-      ? eventOrType
-      : this.createEvent.call(this, type, data)
+    const proxiedEvent = this.#proxyEvent(event)
 
-    for (const listener of this.#listeners[type]) {
+    for (const listener of this.#listeners[event.type]) {
       if (
-        event[kPropagationStopped] != null &&
-        event[kPropagationStopped] !== this
+        proxiedEvent.event[kPropagationStopped] != null &&
+        proxiedEvent.event[kPropagationStopped] !== this
       ) {
         return false
       }
 
-      if (event[kImmediatePropagationStopped]) {
+      if (proxiedEvent.event[kImmediatePropagationStopped]) {
         break
       }
 
@@ -249,64 +279,48 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
         continue
       }
 
-      this.#callListener(listener, event)
+      this.#callListener(listener, proxiedEvent.event)
     }
 
-    this.#eventsCache.delete([type, data])
+    proxiedEvent.revoke()
 
     return true
   }
 
   /**
-   * Emits the given event and returns a Promise that always resolves
-   * with the array of listener results (either fulfilled or rejected).
-   * The listeners are still called synchronously to guarantee call order
-   * and prevent race conditions.
+   * Emits the given typed event and returns a promise that resolves
+   * when all the listeners for that event have settled.
+   *
+   * @returns {Promise<Array<Emitter.ListenerReturnType>>} A promise that resolves
+   * with the return values of all listeners.
    */
-  public emitAsPromise<Type extends keyof EventMap & string>(
-    event: Emitter.EventType<typeof this, Type, EventMap>,
-  ): Promise<Array<Emitter.ListenerReturnType<typeof this, Type, EventMap>>>
-  public emitAsPromise<Type extends keyof EventMap & string>(
-    ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
-      ? [type: Type]
-      : [type: Type, data: Emitter.EventDataType<typeof this, Type, EventMap>]
-  ): Promise<Array<Emitter.ListenerReturnType<typeof this, Type, EventMap>>>
-
-  public async emitAsPromise<Type extends keyof EventMap & string>(
-    ...args:
-      | [Emitter.EventType<typeof this, Type, EventMap>]
-      | (Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
-          ? [type: Type]
-          : [
-              type: Type,
-              data: Emitter.EventDataType<typeof this, Type, EventMap>,
-            ])
-  ): Promise<Array<Emitter.ListenerReturnType<typeof this, Type, EventMap>>> {
-    const [eventOrType, data] = args
-    const isEvent = eventOrType instanceof Event
-    const type = isEvent ? eventOrType.type : eventOrType
-
-    if (!this.#listeners[type] || this.#listeners[type].length === 0) {
+  public async emitAsPromise<EventType extends keyof EventMap & string>(
+    event: Brand<EventMap[EventType], EventType>,
+  ): Promise<
+    Array<Emitter.ListenerReturnType<typeof this, EventType, EventMap>>
+  > {
+    if (
+      !this.#listeners[event.type] ||
+      this.#listeners[event.type].length === 0
+    ) {
       return []
     }
 
-    const event = isEvent
-      ? eventOrType
-      : this.createEvent.call(this, type, data)
-
     const pendingListeners: Array<
-      Promise<Emitter.ListenerReturnType<typeof this, Type, EventMap>>
+      Promise<Emitter.ListenerReturnType<typeof this, EventType, EventMap>>
     > = []
 
-    for (const listener of this.#listeners[type]) {
+    const proxiedEvent = this.#proxyEvent(event)
+
+    for (const listener of this.#listeners[event.type]) {
       if (
-        event[kPropagationStopped] != null &&
-        event[kPropagationStopped] !== this
+        proxiedEvent.event[kPropagationStopped] != null &&
+        proxiedEvent.event[kPropagationStopped] !== this
       ) {
         return []
       }
 
-      if (event[kImmediatePropagationStopped]) {
+      if (proxiedEvent.event[kImmediatePropagationStopped]) {
         break
       }
 
@@ -316,11 +330,11 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
 
       pendingListeners.push(
         // Awaiting individual listeners guarantees their call order.
-        await Promise.resolve(this.#callListener(listener, event)),
+        await Promise.resolve(this.#callListener(listener, proxiedEvent.event)),
       )
     }
 
-    this.#eventsCache.delete([type, data])
+    proxiedEvent.revoke()
 
     return Promise.allSettled(pendingListeners).then((results) => {
       return results.map((result) =>
@@ -331,49 +345,30 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
 
   /**
    * Emits the given event and returns a generator that yields
-   * the result of each listener in order. This way, you stop exhausting
-   * the listeners once you get the expected value.
+   * the result of each listener in the order of their registration.
+   * This way, you stop exhausting the listeners once you get the expected value.
    */
-  public emitAsGenerator<Type extends keyof EventMap & string>(
-    event: Emitter.EventType<typeof this, Type, EventMap>,
-  ): Generator<Emitter.ListenerReturnType<typeof this, Type, EventMap>>
-  public emitAsGenerator<Type extends keyof EventMap & string>(
-    ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
-      ? [type: Type]
-      : [type: Type, data: Emitter.EventDataType<typeof this, Type, EventMap>]
-  ): Generator<Emitter.ListenerReturnType<typeof this, Type, EventMap>>
-
-  public *emitAsGenerator<Type extends keyof EventMap & string>(
-    ...args:
-      | [event: Emitter.EventType<typeof this, Type, EventMap>]
-      | (Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
-          ? [type: Type]
-          : [
-              type: Type,
-              data: Emitter.EventDataType<typeof this, Type, EventMap>,
-            ])
-  ): Generator<Emitter.ListenerReturnType<typeof this, Type, EventMap>> {
-    const [eventOrType, data] = args
-    const isEvent = eventOrType instanceof Event
-    const type = isEvent ? eventOrType.type : eventOrType
-
-    if (!this.#listeners[type] || this.#listeners[type].length === 0) {
+  public *emitAsGenerator<EventType extends keyof EventMap & string>(
+    event: Brand<EventMap[EventType], EventType>,
+  ): Generator<Emitter.ListenerReturnType<typeof this, EventType, EventMap>> {
+    if (
+      !this.#listeners[event.type] ||
+      this.#listeners[event.type].length === 0
+    ) {
       return
     }
 
-    const event = isEvent
-      ? eventOrType
-      : this.createEvent.call(this, type, data)
+    const proxiedEvent = this.#proxyEvent(event)
 
-    for (const listener of this.#listeners[type]) {
+    for (const listener of this.#listeners[event.type]) {
       if (
-        event[kPropagationStopped] != null &&
-        event[kPropagationStopped] !== this
+        proxiedEvent.event[kPropagationStopped] != null &&
+        proxiedEvent.event[kPropagationStopped] !== this
       ) {
         return
       }
 
-      if (event[kImmediatePropagationStopped]) {
+      if (proxiedEvent.event[kImmediatePropagationStopped]) {
         break
       }
 
@@ -381,30 +376,31 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
         continue
       }
 
-      yield this.#callListener(listener, event)
+      yield this.#callListener(listener, proxiedEvent.event)
     }
 
-    this.#eventsCache.delete([type, data])
+    proxiedEvent.revoke()
   }
 
   /**
-   * Removes the given listener.
+   * Removes a listener for the given event type.
    */
-  public removeListener<Type extends keyof EventMap & string>(
-    type: Type,
-    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
+  public removeListener<EventType extends keyof EventMap & string>(
+    type: EventType,
+    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
   ): void {
     if (!this.#listeners[type]) {
       return
     }
 
-    const nextListeners: Array<StrictEventListener<Event>> = []
+    const nextListeners: Array<
+      Emitter.ListenerType<typeof this, EventType, EventMap>
+    > = []
 
     for (const existingListener of this.#listeners[type]) {
       if (existingListener === listener) {
         this.#listenerOptions.delete(existingListener)
         this.#abortControllers.delete(existingListener)
-        this.#eventsCache.delete([type, existingListener])
         continue
       }
 
@@ -418,14 +414,13 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
    * Removes all listeners for the given event type.
    * If no event type is provided, removes all existing listeners.
    */
-  public removeAllListeners<Type extends keyof EventMap & string>(
-    type?: Type,
+  public removeAllListeners<EventType extends keyof EventMap & string>(
+    type?: EventType,
   ): void {
     if (type == null) {
       this.#listeners = {} as InternalListenersMap<typeof this>
       this.#listenerOptions = new WeakMap()
       this.#abortControllers = new WeakMap()
-      this.#eventsCache = new WeakMap()
       return
     }
 
@@ -436,9 +431,9 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
    * Returns the list of listeners for the given event type.
    * If no even type is provided, returns all listeners.
    */
-  public listeners<Type extends keyof EventMap & string>(
-    type?: Type,
-  ): Array<Emitter.ListenerType<typeof this, Type, EventMap>> {
+  public listeners<EventType extends keyof EventMap & string>(
+    type?: EventType,
+  ): Array<Emitter.ListenerType<typeof this, EventType, EventMap>> {
     if (type == null) {
       return Object.values(this.#listeners).flat()
     }
@@ -450,15 +445,15 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
    * Returns the number of listeners for the given event type.
    * If no even type is provided, returns the total number of listeners.
    */
-  public listenerCount<Type extends keyof EventMap & string>(
-    type?: Type,
+  public listenerCount<EventType extends keyof EventMap & string>(
+    type?: EventType,
   ): number {
     return this.listeners(type).length
   }
 
-  #addListener<Type extends keyof EventMap & string>(
-    type: Type,
-    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
+  #addListener<EventType extends keyof EventMap & string>(
+    type: EventType,
+    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
   ) {
     if (!this.#listeners[type]) {
       this.#listeners[type] = []
@@ -467,82 +462,30 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
     this.#listeners[type].push(listener)
   }
 
-  public createEvent<
-    Type extends keyof EventMap & string,
-    EmitterEvent extends Emitter.EventType<
-      typeof this,
-      Type,
-      EventMap
-    > = Emitter.EventType<typeof this, Type, EventMap>,
-  >(
-    ...args: Emitter.EventDataType<typeof this, Type, EventMap> extends [never]
-      ? [type: Type]
-      : [type: Type, data: Emitter.EventDataType<typeof this, Type, EventMap>]
-  ): EmitterEvent {
-    const [type, data] = args
-    const cachedEvent = this.#eventsCache.get([type, data])
+  #proxyEvent<Event extends TypedEvent>(
+    event: Event,
+  ): { event: Event; revoke: () => void } {
+    const { stopPropagation } = event
 
-    if (cachedEvent) {
-      return cachedEvent as EmitterEvent
-    }
-
-    let event =
-      data == null
-        ? (new Event(type, { cancelable: true }) as EmitterEvent)
-        : (new MessageEvent(type, { data, cancelable: true }) as EmitterEvent)
-
-    Object.defineProperties(event, {
-      defaultPrevented: {
-        enumerable: false,
-        writable: true,
-        value: false,
-      },
-      preventDefault: {
-        enumerable: false,
-        value: new Proxy(event.preventDefault, {
-          apply: (target, thisArg, argArray) => {
-            /**
-             * @note Node.js 18 does NOT update the `defaultPrevented` value
-             * when you call `preventDefault()`. This is a bug in Node.js.
-             *
-             * @fixme Remove this hack when Node.js 20 is the minimal version.
-             */
-            Reflect.set(event, 'defaultPrevented', true)
-            return Reflect.apply(target, thisArg, argArray)
-          },
-        }),
-      },
-      stopPropagation: {
-        enumerable: false,
-        value: new Proxy(event.stopPropagation, {
-          apply: (target, thisArg, argArray) => {
-            /**
-             * @note Propagation is also stopped when the immediate propagation is stopped.
-             * Because of that, store the reference to the Emitter instance that stopped it.
-             * (Node.js makes `thisArg` to be the `Event` that stops it).
-             */
-            event[kPropagationStopped] = this
-            return Reflect.apply(target, thisArg, argArray)
-          },
-        }),
-      },
-      stopImmediatePropagation: {
-        enumerable: false,
-        value: new Proxy(event.stopImmediatePropagation, {
-          apply(target, thisArg, argArray) {
-            event[kImmediatePropagationStopped] = true
-            return Reflect.apply(target, thisArg, argArray)
-          },
-        }),
+    event.stopPropagation = new Proxy(event.stopPropagation, {
+      apply: (target, thisArg, argArray) => {
+        event[kPropagationStopped] = this
+        return Reflect.apply(target, thisArg, argArray)
       },
     })
 
-    this.#eventsCache.set([type, data], event)
-
-    return event
+    return {
+      event,
+      revoke() {
+        event.stopPropagation = stopPropagation
+      },
+    }
   }
 
-  #callListener(listener: StrictEventListener<Event>, event: Event) {
+  #callListener<EventType extends keyof EventMap & string>(
+    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
+    event: Event,
+  ) {
     const returnValue = listener.call(this, event)
 
     if (this.#listenerOptions.get(listener)?.once) {
@@ -552,9 +495,9 @@ export class Emitter<EventMap extends DefaultEventMap = {}> {
     return returnValue
   }
 
-  #createAbortController<Type extends keyof EventMap & string>(
-    type: Type,
-    listener: Emitter.ListenerType<typeof this, Type, EventMap>,
+  #createAbortController<EventType extends keyof EventMap & string>(
+    type: EventType,
+    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
   ): AbortController {
     const abortController = new AbortController()
 
