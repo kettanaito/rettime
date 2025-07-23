@@ -438,7 +438,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
       return Object.values(this.#listeners).flat()
     }
 
-    return this.#listeners[type]
+    return this.#listeners[type] || []
   }
 
   /**
