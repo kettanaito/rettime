@@ -30,7 +30,7 @@ export class TypedEvent<
   #returnType: ReturnType;
 
   [kDefaultPrevented]: boolean;
-  [kPropagationStopped]?: Emitter;
+  [kPropagationStopped]?: Emitter<any>;
   [kImmediatePropagationStopped]?: boolean
 
   constructor(
@@ -68,14 +68,14 @@ type Brand<Event extends TypedEvent, EventType extends string> = Event & {
   type: EventType
 }
 
-type InferEventMap<Target extends Emitter> = Target extends Emitter<
+type InferEventMap<Target extends Emitter<any>> = Target extends Emitter<
   infer EventMap
 >
   ? EventMap
   : never
 
 type InternalListenersMap<
-  Target extends Emitter,
+  Target extends Emitter<any>,
   EventMap extends DefaultEventMap = InferEventMap<Target>,
   EventType extends string = keyof EventMap & string,
 > = Record<
@@ -97,13 +97,13 @@ export namespace Emitter {
    * // TypedEvent<string>
    */
   export type EventType<
-    Target extends Emitter,
+    Target extends Emitter<any>,
     EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
   > = Brand<EventMap[EventType], EventType>
 
   export type EventDataType<
-    Target extends Emitter,
+    Target extends Emitter<any>,
     EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
   > = EventMap[EventType] extends TypedEvent<infer DataType> ? DataType : never
@@ -117,7 +117,7 @@ export namespace Emitter {
    * // (event: TypedEvent<Cart>) => number
    */
   export type ListenerType<
-    Target extends Emitter,
+    Target extends Emitter<any>,
     Type extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
   > = (
@@ -135,7 +135,7 @@ export namespace Emitter {
    * // number
    */
   export type ListenerReturnType<
-    Target extends Emitter,
+    Target extends Emitter<any>,
     EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
   > = EventMap[EventType] extends TypedEvent<unknown, infer ReturnType>
@@ -143,7 +143,7 @@ export namespace Emitter {
     : never
 }
 
-export class Emitter<EventMap extends DefaultEventMap = {}> {
+export class Emitter<EventMap extends DefaultEventMap> {
   #listeners: InternalListenersMap<typeof this, EventMap>
   #listenerOptions: WeakMap<Function, AddEventListenerOptions>
   #abortControllers: WeakMap<Function, AbortController>
