@@ -254,10 +254,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
   public emit<EventType extends keyof EventMap & string>(
     event: Brand<EventMap[EventType], EventType>,
   ): boolean {
-    if (
-      !this.#listeners[event.type] ||
-      this.#listeners[event.type].length === 0
-    ) {
+    if (this.listenerCount(event.type) === 0) {
       return false
     }
 
@@ -299,10 +296,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
   ): Promise<
     Array<Emitter.ListenerReturnType<typeof this, EventType, EventMap>>
   > {
-    if (
-      !this.#listeners[event.type] ||
-      this.#listeners[event.type].length === 0
-    ) {
+    if (this.listenerCount(event.type) === 0) {
       return []
     }
 
@@ -351,10 +345,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
   public *emitAsGenerator<EventType extends keyof EventMap & string>(
     event: Brand<EventMap[EventType], EventType>,
   ): Generator<Emitter.ListenerReturnType<typeof this, EventType, EventMap>> {
-    if (
-      !this.#listeners[event.type] ||
-      this.#listeners[event.type].length === 0
-    ) {
+    if (this.listenerCount(event.type) === 0) {
       return
     }
 
@@ -389,7 +380,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
     type: EventType,
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
   ): void {
-    if (!this.#listeners[type]) {
+    if (this.listenerCount(type) === 0) {
       return
     }
 
