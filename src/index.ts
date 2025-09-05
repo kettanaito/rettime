@@ -395,14 +395,22 @@ export class Emitter<EventMap extends DefaultEventMap> {
       this.#listeners[type].push(listener)
     }
 
-    this.#supportAbortSignal(type, listener, options)
-
     if (options) {
       Object.defineProperty(listener, kListenerOptions, {
         value: options,
         enumerable: false,
         writable: false,
       })
+
+      if (options.signal) {
+        options.signal.addEventListener(
+          'abort',
+          () => {
+            this.removeListener(type, listener)
+          },
+          { once: true },
+        )
+      }
     }
 
     return this
@@ -441,21 +449,5 @@ export class Emitter<EventMap extends DefaultEventMap> {
     }
 
     return returnValue
-  }
-
-  #supportAbortSignal<EventType extends keyof EventMap & string>(
-    type: EventType,
-    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
-    options?: TypedListenerOptions,
-  ): void {
-    if (options?.signal) {
-      options.signal.addEventListener(
-        'abort',
-        () => {
-          this.removeListener(type, listener)
-        },
-        { once: true },
-      )
-    }
   }
 }
