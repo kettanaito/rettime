@@ -84,8 +84,11 @@ type InternalListenersMap<
 >
 
 export type TypedListenerOptions = {
+  once?: boolean
   signal?: AbortSignal
 }
+
+const kListenerOptions = Symbol('kListenerOptions')
 
 export namespace Emitter {
   /**
@@ -145,13 +148,9 @@ export namespace Emitter {
 
 export class Emitter<EventMap extends DefaultEventMap> {
   #listeners: InternalListenersMap<typeof this, EventMap>
-  #listenerOptions: WeakMap<Function, AddEventListenerOptions>
-  #abortControllers: WeakMap<Function, AbortController>
 
   constructor() {
     this.#listeners = {} as InternalListenersMap<typeof this, EventMap>
-    this.#listenerOptions = new WeakMap()
-    this.#abortControllers = new WeakMap()
   }
 
   /**
@@ -163,17 +162,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
     type: EventType,
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
     options?: TypedListenerOptions,
-  ): AbortController {
-    this.#addListener(type, listener)
-
-    const abortController = this.#createAbortController(type, listener)
-    this.#listenerOptions.set(listener, {
-      signal: options?.signal
-        ? AbortSignal.any([abortController.signal, options.signal])
-        : abortController.signal,
-    })
-
-    return abortController
+  ): typeof this {
+    return this.#addListener(type, listener, options)
   }
 
   /**
@@ -184,19 +174,9 @@ export class Emitter<EventMap extends DefaultEventMap> {
   public once<EventType extends keyof EventMap & string>(
     type: EventType,
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
-    options?: TypedListenerOptions,
-  ): AbortController {
-    this.#addListener(type, listener)
-
-    const abortController = this.#createAbortController(type, listener)
-    this.#listenerOptions.set(listener, {
-      once: true,
-      signal: options?.signal
-        ? AbortSignal.any([abortController.signal, options.signal])
-        : abortController.signal,
-    })
-
-    return abortController
+    options?: Omit<TypedListenerOptions, 'once'>,
+  ): typeof this {
+    return this.on(type, listener, { ...(options || {}), once: true })
   }
 
   /**
@@ -208,21 +188,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
     type: EventType,
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
     options?: TypedListenerOptions,
-  ): AbortController {
-    if (!this.#listeners[type]) {
-      this.#listeners[type] = []
-    }
-
-    this.#listeners[type].unshift(listener)
-
-    const abortController = this.#createAbortController(type, listener)
-    this.#listenerOptions.set(listener, {
-      signal: options?.signal
-        ? AbortSignal.any([abortController.signal, options.signal])
-        : abortController.signal,
-    })
-
-    return abortController
+  ): typeof this {
+    return this.#addListener(type, listener, options, 'prepend')
   }
 
   /**
@@ -231,19 +198,9 @@ export class Emitter<EventMap extends DefaultEventMap> {
   public earlyOnce<EventType extends keyof EventMap & string>(
     type: EventType,
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
-    options?: TypedListenerOptions,
-  ): AbortController {
-    this.earlyOn(type, listener)
-
-    const abortController = this.#createAbortController(type, listener)
-    this.#listenerOptions.set(listener, {
-      once: true,
-      signal: options?.signal
-        ? AbortSignal.any([abortController.signal, options.signal])
-        : abortController.signal,
-    })
-
-    return abortController
+    options?: Omit<TypedListenerOptions, 'once'>,
+  ): typeof this {
+    return this.earlyOn(type, listener, { ...(options || {}), once: true })
   }
 
   /**
@@ -272,11 +229,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
         break
       }
 
-      if (this.#listenerOptions.get(listener).signal.aborted) {
-        continue
-      }
-
-      this.#callListener(listener, proxiedEvent.event)
+      this.#callListener(proxiedEvent.event, listener)
     }
 
     proxiedEvent.revoke()
@@ -318,13 +271,9 @@ export class Emitter<EventMap extends DefaultEventMap> {
         break
       }
 
-      if (this.#listenerOptions.get(listener)?.signal?.aborted) {
-        continue
-      }
-
       pendingListeners.push(
         // Awaiting individual listeners guarantees their call order.
-        await Promise.resolve(this.#callListener(listener, proxiedEvent.event)),
+        await Promise.resolve(this.#callListener(proxiedEvent.event, listener)),
       )
     }
 
@@ -363,11 +312,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
         break
       }
 
-      if (this.#listenerOptions.get(listener)?.signal?.aborted) {
-        continue
-      }
-
-      yield this.#callListener(listener, proxiedEvent.event)
+      yield this.#callListener(proxiedEvent.event, listener)
     }
 
     proxiedEvent.revoke()
@@ -389,13 +334,9 @@ export class Emitter<EventMap extends DefaultEventMap> {
     > = []
 
     for (const existingListener of this.#listeners[type]) {
-      if (existingListener === listener) {
-        this.#listenerOptions.delete(existingListener)
-        this.#abortControllers.delete(existingListener)
-        continue
+      if (existingListener !== listener) {
+        nextListeners.push(existingListener)
       }
-
-      nextListeners.push(existingListener)
     }
 
     this.#listeners[type] = nextListeners
@@ -410,8 +351,6 @@ export class Emitter<EventMap extends DefaultEventMap> {
   ): void {
     if (type == null) {
       this.#listeners = {} as InternalListenersMap<typeof this>
-      this.#listenerOptions = new WeakMap()
-      this.#abortControllers = new WeakMap()
       return
     }
 
@@ -445,12 +384,36 @@ export class Emitter<EventMap extends DefaultEventMap> {
   #addListener<EventType extends keyof EventMap & string>(
     type: EventType,
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
-  ) {
-    if (!this.#listeners[type]) {
-      this.#listeners[type] = []
+    options: TypedListenerOptions | undefined,
+    insertMode: 'append' | 'prepend' = 'append',
+  ): typeof this {
+    this.#listeners[type] ??= []
+
+    if (insertMode === 'prepend') {
+      this.#listeners[type].unshift(listener)
+    } else {
+      this.#listeners[type].push(listener)
     }
 
-    this.#listeners[type].push(listener)
+    if (options) {
+      Object.defineProperty(listener, kListenerOptions, {
+        value: options,
+        enumerable: false,
+        writable: false,
+      })
+
+      if (options.signal) {
+        options.signal.addEventListener(
+          'abort',
+          () => {
+            this.removeListener(type, listener)
+          },
+          { once: true },
+        )
+      }
+    }
+
+    return this
   }
 
   #proxyEvent<Event extends TypedEvent>(
@@ -474,31 +437,17 @@ export class Emitter<EventMap extends DefaultEventMap> {
   }
 
   #callListener<EventType extends keyof EventMap & string>(
-    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
     event: Event,
+    listener: Emitter.ListenerType<typeof this, EventType, EventMap> & {
+      [kListenerOptions]?: TypedListenerOptions
+    },
   ) {
     const returnValue = listener.call(this, event)
 
-    if (this.#listenerOptions.get(listener)?.once) {
+    if (listener[kListenerOptions]?.once) {
       this.removeListener(event.type, listener)
     }
 
     return returnValue
-  }
-
-  #createAbortController<EventType extends keyof EventMap & string>(
-    type: EventType,
-    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
-  ): AbortController {
-    const abortController = new AbortController()
-
-    // Since we are emitting events manually, aborting the controller
-    // won't do anything by itself. We need to teach the class what to do.
-    abortController.signal.addEventListener('abort', () => {
-      this.removeListener(type, listener)
-    })
-
-    this.#abortControllers.set(listener, abortController)
-    return abortController
   }
 }
