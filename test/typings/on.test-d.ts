@@ -73,3 +73,10 @@ it('infers custom event type with a custom data type', () => {
     expectTypeOf(event.id).toBeString()
   })
 })
+
+it('returns the emitter reference', () => {
+  const emitter = new Emitter<{ greeting: TypedEvent }>()
+  const returnValue = emitter.on('greeting', () => void 0)
+
+  expectTypeOf(returnValue).toEqualTypeOf<typeof emitter>()
+})
