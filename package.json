@@ -10,9 +10,10 @@
     "src"
   ],
   "scripts": {
+    "dev": "tsdown -w",
     "test": "vitest",
     "benchmark": "vitest bench",
-    "build": "tsup",
+    "build": "tsdown",
     "release": "release publish"
   },
   "imports": {
@@ -28,10 +29,15 @@
   ],
   "author": "Artem Zakharchenko <kettanaito@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mswjs/msw.git"
+  },
   "devDependencies": {
     "@ossjs/release": "^0.8.1",
-    "tsup": "^8.4.0",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.2"
+    "@rolldown/binding-darwin-arm64": "1.0.0-beta.40",
+    "tsdown": "^0.15.4",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }
