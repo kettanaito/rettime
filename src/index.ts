@@ -68,11 +68,8 @@ type Brand<Event extends TypedEvent, EventType extends string> = Event & {
   type: EventType
 }
 
-type InferEventMap<Target extends Emitter<any>> = Target extends Emitter<
-  infer EventMap
->
-  ? EventMap
-  : never
+type InferEventMap<Target extends Emitter<any>> =
+  Target extends Emitter<infer EventMap> ? EventMap : never
 
 type InternalListenersMap<
   Target extends Emitter<any>,
@@ -141,9 +138,10 @@ export namespace Emitter {
     Target extends Emitter<any>,
     EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
-  > = EventMap[EventType] extends TypedEvent<unknown, infer ReturnType>
-    ? ReturnType
-    : never
+  > =
+    EventMap[EventType] extends TypedEvent<unknown, infer ReturnType>
+      ? ReturnType
+      : never
 }
 
 export class Emitter<EventMap extends DefaultEventMap> {
@@ -155,8 +153,6 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
   /**
    * Adds a listener for the given event type.
-   *
-   * @returns {AbortController} An `AbortController` that can be used to remove the listener.
    */
   public on<EventType extends keyof EventMap & string>(
     type: EventType,
@@ -168,8 +164,6 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
   /**
    * Adds a one-time listener for the given event type.
-   *
-   * @returns {AbortController} An `AbortController` that can be used to remove the listener.
    */
   public once<EventType extends keyof EventMap & string>(
     type: EventType,
@@ -181,8 +175,6 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
   /**
    * Prepends a listener for the given event type.
-   *
-   * @returns {AbortController} An `AbortController` that can be used to remove the listener.
    */
   public earlyOn<EventType extends keyof EventMap & string>(
     type: EventType,
