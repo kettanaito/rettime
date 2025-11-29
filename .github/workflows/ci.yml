@@ -7,6 +7,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build:
     runs-on: macos-latest
@@ -20,13 +24,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 24
           always-auth: true
           registry-url: https://registry.npmjs.org
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.14.2
+          version: 9.15.0
 
       - name: Setup Git
         run: |
@@ -47,4 +51,3 @@ jobs:
         run: pnpm release
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
