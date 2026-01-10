@@ -4,7 +4,7 @@ export type DefaultEventMap = {
 
 export interface TypedEvent<
   DataType = void,
-  ReturnType = any,
+  ReturnType = void,
   EventType extends string = string,
 > extends Omit<MessageEvent<DataType>, 'type'> {
   type: EventType
@@ -17,7 +17,7 @@ const kAllEvents = Symbol('kAllEvents')
 
 export class TypedEvent<
     DataType = void,
-    ReturnType = any,
+    ReturnType = void,
     EventType extends string = string,
   >
   extends MessageEvent<DataType>
@@ -65,12 +65,50 @@ export class TypedEvent<
 /**
  * Brands a TypedEvent or its subclass while preserving its (narrower) type.
  */
-type Brand<Event extends TypedEvent, EventType extends string> = Event & {
-  type: EventType
-}
+type Brand<
+  Event extends TypedEvent,
+  EventType extends string,
+  Loose extends boolean = false,
+> = Loose extends true
+  ? Event extends TypedEvent<infer Data, any, any>
+    ? /**
+       * @note Omit the `ReturnType` so emit methods can accept type events
+       * where infering the return type is impossible.
+       */
+      TypedEvent<Data, any, EventType> & {
+        type: EventType
+      }
+    : never
+  : Event & { type: EventType }
 
 type InferEventMap<Target extends Emitter<any>> =
   Target extends Emitter<infer EventMap> ? EventMap : never
+
+/**
+ * Creates a union of all events in the EventMap with their literal type strings.
+ */
+type AllEvents<EventMap extends DefaultEventMap> = {
+  [K in keyof EventMap & string]: Brand<EventMap[K], K>
+}[keyof EventMap & string]
+
+/**
+ * Extracts a union of all return types from all events in the EventMap.
+ */
+type AllEventsReturnType<EventMap extends DefaultEventMap> = {
+  [K in keyof EventMap]: EventMap[K] extends TypedEvent<any, infer R> ? R : any
+}[keyof EventMap]
+
+/**
+ * Creates a listener type for all events that accepts any event and returns union of all return types.
+ */
+type AllEventsListenerType<
+  Target extends Emitter<any>,
+  EventMap extends DefaultEventMap,
+> = (
+  event: AllEvents<EventMap>,
+) => AllEventsReturnType<EventMap> extends [void]
+  ? void
+  : AllEventsReturnType<EventMap>
 
 type InternalListenersMap<
   Target extends Emitter<any>,
@@ -161,10 +199,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
     options?: TypedListenerOptions,
   ): typeof this
-  public on<EventType extends keyof EventMap & string>(
-    listener: (
-      event: EventMap[EventType],
-    ) => Emitter.ListenerReturnType<typeof this, EventType, EventMap>,
+  public on(
+    listener: AllEventsListenerType<typeof this, EventMap>,
     options?: TypedListenerOptions,
   ): typeof this
   public on<EventType extends keyof EventMap & string>(
@@ -206,10 +242,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this
-  public once<EventType extends keyof EventMap & string>(
-    listener: (
-      event: EventMap[EventType],
-    ) => Emitter.ListenerReturnType<typeof this, EventType, EventMap>,
+  public once(
+    listener: AllEventsListenerType<typeof this, EventMap>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this
   public once<EventType extends keyof EventMap & string>(
@@ -245,10 +279,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
     options?: TypedListenerOptions,
   ): typeof this
-  public earlyOn<EventType extends keyof EventMap & string>(
-    listener: (
-      event: EventMap[EventType],
-    ) => Emitter.ListenerReturnType<typeof this, EventType, EventMap>,
+  public earlyOn(
+    listener: AllEventsListenerType<typeof this, EventMap>,
     options?: TypedListenerOptions,
   ): typeof this
   public earlyOn<EventType extends keyof EventMap & string>(
@@ -292,10 +324,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this
-  public earlyOnce<EventType extends keyof EventMap & string>(
-    listener: (
-      event: EventMap[EventType],
-    ) => Emitter.ListenerReturnType<typeof this, EventType, EventMap>,
+  public earlyOnce(
+    listener: AllEventsListenerType<typeof this, EventMap>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this
   public earlyOnce<EventType extends keyof EventMap & string>(
@@ -328,7 +358,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * @returns {boolean} Returns `true` if the event had any listeners, `false` otherwise.
    */
   public emit<EventType extends keyof EventMap & string>(
-    event: Brand<EventMap[EventType], EventType>,
+    event: Brand<EventMap[EventType], EventType, true>,
   ): boolean {
     const typeListeners = this.#listeners[event.type] || []
     const allListeners = this.#listeners[kAllEvents] || []
@@ -386,7 +416,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * with the return values of all listeners.
    */
   public async emitAsPromise<EventType extends keyof EventMap & string>(
-    event: Brand<EventMap[EventType], EventType>,
+    event: Brand<EventMap[EventType], EventType, true>,
   ): Promise<
     Array<Emitter.ListenerReturnType<typeof this, EventType, EventMap>>
   > {
@@ -460,7 +490,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * This way, you stop exhausting the listeners once you get the expected value.
    */
   public *emitAsGenerator<EventType extends keyof EventMap & string>(
-    event: Brand<EventMap[EventType], EventType>,
+    event: Brand<EventMap[EventType], EventType, true>,
   ): Generator<Emitter.ListenerReturnType<typeof this, EventType, EventMap>> {
     const typeListeners = this.#listeners[event.type] || []
     const allListeners = this.#listeners[kAllEvents] || []

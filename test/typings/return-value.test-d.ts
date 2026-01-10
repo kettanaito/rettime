@@ -4,11 +4,11 @@ it('infers event return type', async () => {
   const emitter = new Emitter<{ greeting: TypedEvent }>()
 
   emitter.emitAsPromise(new TypedEvent('greeting')).then((value) => {
-    expectTypeOf(value).toEqualTypeOf<any[]>()
+    expectTypeOf(value).toEqualTypeOf<void[]>()
   })
 
   for (const value of emitter.emitAsGenerator(new TypedEvent('greeting'))) {
-    expectTypeOf(value).toBeAny()
+    expectTypeOf(value).toBeVoid()
   }
 })
 
