@@ -1,8 +1,10 @@
 {
+  "$schema": "./node_modules/@ossjs/release/schema.json",
   "profiles": [
     {
       "name": "latest",
-      "use": "pnpm publish --no-git-checks"
+      "use": "pnpm publish --no-git-checks",
+      "prerelease": true
     }
   ]
 }
