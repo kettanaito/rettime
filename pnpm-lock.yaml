@@ -9,17 +9,17 @@ importers:
   .:
     devDependencies:
       '@ossjs/release':
-        specifier: ^0.10.0
-        version: 0.10.0
+        specifier: ^0.10.1
+        version: 0.10.1
       '@rolldown/binding-darwin-arm64':
         specifier: 1.0.0-beta.40
         version: 1.0.0-beta.40
       tsdown:
         specifier: ^0.19.0
-        version: 0.19.0(publint@0.3.15)(typescript@5.9.2)
+        version: 0.19.0(publint@0.3.15)(typescript@5.9.3)
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.2
+        specifier: ^5.9.3
+        version: 5.9.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@24.10.1)
@@ -216,8 +216,8 @@ packages:
   '@open-draft/deferred-promise@2.2.0':
     resolution: {integrity: sha512-CecwLWx3rhxVQF6V4bAgPS5t+So2sTbPgAzafKkVizyi7tlwpcFpdFqq+wqF2OwNBmqFuu6tOyouTuxgpMfzmA==}
 
-  '@ossjs/release@0.10.0':
-    resolution: {integrity: sha512-Cj8pV7aY9xDOCunv4B8mXTfwK/sDxy6NeYxcrFXs/dedazmqCsyeM97IEGB+pMBZrcUJbjSY+/Ed7H/Cowdovw==}
+  '@ossjs/release@0.10.1':
+    resolution: {integrity: sha512-Djr1DXVTeR476ZdNC0RYPQQuX7Hx+CnEex1AyBBnsizQ7KqsidW99iooDFxT36jy8ReXwdTgIsjP2OSdyjfbLQ==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
@@ -455,8 +455,8 @@ packages:
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
 
-  '@types/yargs@17.0.32':
-    resolution: {integrity: sha512-xQ67Yc/laOG5uMfX/093MRlGGCIBzZMarVa+gfNKJxWAIgykYpVGkBdbqEzGDDfCrVUj6Hiff4mTZ5BA6TmAog==}
+  '@types/yargs@17.0.35':
+    resolution: {integrity: sha512-qUHkeCyQFxMXg79wQfTtfndEC+N9ZZg76HJftDJp+qH2tV7Gj4OJi7l+PiWwJ+pWtW8GwSmqsDj/oymhrTWXjg==}
 
   '@vitest/expect@3.2.4':
     resolution: {integrity: sha512-Io0yyORnB6sikFlt8QW5K7slY4OjqNX9jmJQ02QDda8lyM6B5oNgVWoSoKPac8/kgnCUzuHQKrSLtu/uOqqrig==}
@@ -926,11 +926,6 @@ packages:
   secure-json-parse@2.7.0:
     resolution: {integrity: sha512-6aU+Rwsezw7VR8/nyvKTx8QpWH9FrcYiXXlqC4z5d5XQBDRqtbfsRjnwGyqbi3gddNtWHuEk9OANUotL26qKUw==}
 
-  semver@7.7.2:
-    resolution: {integrity: sha512-RF0Fw+rO5AMf9MAyaRXI4AV0Ulj5lMHqVxxdSgiVbixSCXoEmmX/jk0CuJw4+3SqroYO9VoUh+HcuJivvtJemA==}
-    engines: {node: '>=10'}
-    hasBin: true
-
   semver@7.7.3:
     resolution: {integrity: sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==}
     engines: {node: '>=10'}
@@ -1065,8 +1060,8 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
-  typescript@5.9.2:
-    resolution: {integrity: sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A==}
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -1314,14 +1309,14 @@ snapshots:
 
   '@open-draft/deferred-promise@2.2.0': {}
 
-  '@ossjs/release@0.10.0':
+  '@ossjs/release@0.10.1':
     dependencies:
       '@open-draft/deferred-promise': 2.2.0
       '@types/conventional-commits-parser': 5.0.2
       '@types/issue-parser': 3.0.5
       '@types/node': 24.10.1
       '@types/semver': 7.5.8
-      '@types/yargs': 17.0.32
+      '@types/yargs': 17.0.35
       ajv: 8.17.1
       conventional-commits-parser: 6.2.1
       get-stream: 6.0.1
@@ -1333,7 +1328,7 @@ snapshots:
       publint: 0.3.15
       rc: 1.2.8
       registry-auth-token: 5.1.0
-      semver: 7.7.2
+      semver: 7.7.3
       until-async: 3.0.2
       yargs: 18.0.0
 
@@ -1489,7 +1484,7 @@ snapshots:
 
   '@types/yargs-parser@21.0.3': {}
 
-  '@types/yargs@17.0.32':
+  '@types/yargs@17.0.35':
     dependencies:
       '@types/yargs-parser': 21.0.3
 
@@ -1904,7 +1899,7 @@ snapshots:
 
   rfdc@1.4.1: {}
 
-  rolldown-plugin-dts@0.20.0(rolldown@1.0.0-beta.59)(typescript@5.9.2):
+  rolldown-plugin-dts@0.20.0(rolldown@1.0.0-beta.59)(typescript@5.9.3):
     dependencies:
       '@babel/generator': 7.28.5
       '@babel/parser': 7.28.5
@@ -1916,7 +1911,7 @@ snapshots:
       obug: 2.1.1
       rolldown: 1.0.0-beta.59
     optionalDependencies:
-      typescript: 5.9.2
+      typescript: 5.9.3
     transitivePeerDependencies:
       - oxc-resolver
 
@@ -1976,8 +1971,6 @@ snapshots:
   safe-stable-stringify@2.4.3: {}
 
   secure-json-parse@2.7.0: {}
-
-  semver@7.7.2: {}
 
   semver@7.7.3: {}
 
@@ -2068,7 +2061,7 @@ snapshots:
 
   tree-kill@1.2.2: {}
 
-  tsdown@0.19.0(publint@0.3.15)(typescript@5.9.2):
+  tsdown@0.19.0(publint@0.3.15)(typescript@5.9.3):
     dependencies:
       ansis: 4.2.0
       cac: 6.7.14
@@ -2079,7 +2072,7 @@ snapshots:
       obug: 2.1.1
       picomatch: 4.0.3
       rolldown: 1.0.0-beta.59
-      rolldown-plugin-dts: 0.20.0(rolldown@1.0.0-beta.59)(typescript@5.9.2)
+      rolldown-plugin-dts: 0.20.0(rolldown@1.0.0-beta.59)(typescript@5.9.3)
       semver: 7.7.3
       tinyexec: 1.0.2
       tinyglobby: 0.2.15
@@ -2088,7 +2081,7 @@ snapshots:
       unrun: 0.2.24
     optionalDependencies:
       publint: 0.3.15
-      typescript: 5.9.2
+      typescript: 5.9.3
     transitivePeerDependencies:
       - '@ts-macro/tsc'
       - '@typescript/native-preview'
@@ -2099,7 +2092,7 @@ snapshots:
   tslib@2.8.1:
     optional: true
 
-  typescript@5.9.2: {}
+  typescript@5.9.3: {}
 
   unconfig-core@7.4.2:
     dependencies:
