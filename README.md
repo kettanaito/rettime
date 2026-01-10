@@ -77,6 +77,23 @@ emitter.on('greeting', (event) => {
 })
 ```
 
+#### Typeless events
+
+You can listen to any event on the emitter by attaching a _typeless listener_. This implements the same behavior as the `.asAny()` method you might've used with other emitter libraries.
+
+```ts
+const emitter = new Emitter<{
+  greeting: TypedEvent<string>()
+  cart: TypedEvent<CartItem[]>()
+}>()
+
+emitter.on((event) => {
+  console.log(event.data) // string | CartItem[]
+})
+````
+
+Typeless listeners are supported by all subscription methods, like `.on()`, `.once()`, `.earlyOn()`, and .`earlyOnce()`. Despite its name, typeless events are perfectly type-safe and preserve all the type inference otherwise present in this library.
+
 ### `Emitter`
 
 ```ts
@@ -132,7 +149,9 @@ Here's another example where we define a `ping` event that has no arguments but 
 
 ```ts
 const emitter = new Emitter<{ ping: TypedEvent<void, number> }>()
+
 emitter.on('ping', () => Date.now())
+
 const results = await emitter.emitAsPromise(new TypedEvent('ping'))
 // [1745658424732]
 ```
