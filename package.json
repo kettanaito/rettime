@@ -3,8 +3,8 @@
   "name": "rettime",
   "version": "0.7.0",
   "description": "A type-safe marriage of `EventTarget` and `EventEmitter`.",
-  "main": "./build/index.js",
-  "types": "./build/index.d.ts",
+  "main": "./build/index.mjs",
+  "types": "./build/index.d.mts",
   "files": [
     "build",
     "src"
@@ -18,6 +18,12 @@
   },
   "imports": {
     "#src/*": "./src/*"
+  },
+  "exports": {
+    ".": {
+      "types": "./build/index.d.mts",
+      "default": "./build/index.mjs"
+    }
   },
   "keywords": [
     "emitter",
@@ -36,7 +42,7 @@
   "devDependencies": {
     "@ossjs/release": "^0.10.0",
     "@rolldown/binding-darwin-arm64": "1.0.0-beta.40",
-    "tsdown": "^0.15.4",
+    "tsdown": "^0.19.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }

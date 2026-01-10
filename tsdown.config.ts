@@ -6,4 +6,5 @@ export default defineConfig({
   outDir: './build',
   minify: false,
   sourcemap: true,
+  clean: true,
 })
