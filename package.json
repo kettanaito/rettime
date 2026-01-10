@@ -36,8 +36,7 @@
   "author": "Artem Zakharchenko <kettanaito@gmail.com>",
   "license": "MIT",
   "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mswjs/msw.git"
+    "url": "https://github.com/kettanaito/rettime"
   },
   "devDependencies": {
     "@ossjs/release": "^0.10.0",
