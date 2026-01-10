@@ -185,6 +185,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
         listenerOrOptions as TypedListenerOptions,
       )
     }
+
     return this.#addListener(
       typeOrListener,
       listenerOrOptions as Emitter.ListenerType<
@@ -228,6 +229,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
         once: true,
       })
     }
+
     return this.on(typeOrListener, listenerOrOptions as any, {
       ...(options || {}),
       once: true,
@@ -268,6 +270,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
         'prepend',
       )
     }
+
     return this.#addListener(
       typeOrListener,
       listenerOrOptions as Emitter.ListenerType<
@@ -312,6 +315,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
         once: true,
       })
     }
+
     return this.earlyOn(typeOrListener, listenerOrOptions as any, {
       ...(options || {}),
       once: true,
