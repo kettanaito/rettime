@@ -72,6 +72,32 @@ type Brand<Event extends TypedEvent, EventType extends string> = Event & {
 type InferEventMap<Target extends Emitter<any>> =
   Target extends Emitter<infer EventMap> ? EventMap : never
 
+/**
+ * Creates a union of all events in the EventMap with their literal type strings.
+ */
+type AllEvents<EventMap extends DefaultEventMap> = {
+  [K in keyof EventMap & string]: Brand<EventMap[K], K>
+}[keyof EventMap & string]
+
+/**
+ * Extracts a union of all return types from all events in the EventMap.
+ */
+type AllEventsReturnType<EventMap extends DefaultEventMap> = {
+  [K in keyof EventMap]: EventMap[K] extends TypedEvent<any, infer R> ? R : any
+}[keyof EventMap]
+
+/**
+ * Creates a listener type for all events that accepts any event and returns union of all return types.
+ */
+type AllEventsListenerType<
+  Target extends Emitter<any>,
+  EventMap extends DefaultEventMap,
+> = (
+  event: AllEvents<EventMap>,
+) => AllEventsReturnType<EventMap> extends [void]
+  ? void
+  : AllEventsReturnType<EventMap>
+
 type InternalListenersMap<
   Target extends Emitter<any>,
   EventMap extends DefaultEventMap = InferEventMap<Target>,
@@ -161,10 +187,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
     options?: TypedListenerOptions,
   ): typeof this
-  public on<EventType extends keyof EventMap & string>(
-    listener: (
-      event: EventMap[EventType],
-    ) => Emitter.ListenerReturnType<typeof this, EventType, EventMap>,
+  public on(
+    listener: AllEventsListenerType<typeof this, EventMap>,
     options?: TypedListenerOptions,
   ): typeof this
   public on<EventType extends keyof EventMap & string>(
@@ -206,10 +230,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this
-  public once<EventType extends keyof EventMap & string>(
-    listener: (
-      event: EventMap[EventType],
-    ) => Emitter.ListenerReturnType<typeof this, EventType, EventMap>,
+  public once(
+    listener: AllEventsListenerType<typeof this, EventMap>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this
   public once<EventType extends keyof EventMap & string>(
@@ -245,10 +267,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
     options?: TypedListenerOptions,
   ): typeof this
-  public earlyOn<EventType extends keyof EventMap & string>(
-    listener: (
-      event: EventMap[EventType],
-    ) => Emitter.ListenerReturnType<typeof this, EventType, EventMap>,
+  public earlyOn(
+    listener: AllEventsListenerType<typeof this, EventMap>,
     options?: TypedListenerOptions,
   ): typeof this
   public earlyOn<EventType extends keyof EventMap & string>(
@@ -292,10 +312,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
     listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this
-  public earlyOnce<EventType extends keyof EventMap & string>(
-    listener: (
-      event: EventMap[EventType],
-    ) => Emitter.ListenerReturnType<typeof this, EventType, EventMap>,
+  public earlyOnce(
+    listener: AllEventsListenerType<typeof this, EventMap>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this
   public earlyOnce<EventType extends keyof EventMap & string>(

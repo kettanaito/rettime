@@ -7,15 +7,19 @@ it('infers the event data type for an event without data', () => {
 
   emitter
     .on((event) => {
+      expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<void>()
     })
     .once((event) => {
+      expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<void>()
     })
     .earlyOn((event) => {
+      expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<void>()
     })
     .earlyOnce((event) => {
+      expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<void>()
     })
 })
@@ -27,19 +31,19 @@ it('infers the event data type for a single event', () => {
 
   emitter
     .on((event) => {
-      expectTypeOf(event.type).toExtend<string>()
+      expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<'world'>()
     })
     .once((event) => {
-      expectTypeOf(event.type).toExtend<string>()
+      expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<'world'>()
     })
     .earlyOn((event) => {
-      expectTypeOf(event.type).toExtend<string>()
+      expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<'world'>()
     })
     .earlyOnce((event) => {
-      expectTypeOf(event.type).toExtend<string>()
+      expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<'world'>()
     })
 })
@@ -53,19 +57,19 @@ it('infers the event data type for multiple events', () => {
 
   emitter
     .on((event) => {
-      expectTypeOf(event.type).toExtend<string>()
+      expectTypeOf(event.type).toExtend<'hello' | 'goodbye' | 'third'>()
       expectTypeOf(event.data).toExtend<'world' | 'cosmos' | void>()
     })
     .once((event) => {
-      expectTypeOf(event.type).toExtend<string>()
+      expectTypeOf(event.type).toExtend<'hello' | 'goodbye' | 'third'>()
       expectTypeOf(event.data).toExtend<'world' | 'cosmos' | void>()
     })
     .earlyOn((event) => {
-      expectTypeOf(event.type).toExtend<string>()
+      expectTypeOf(event.type).toExtend<'hello' | 'goodbye' | 'third'>()
       expectTypeOf(event.data).toExtend<'world' | 'cosmos' | void>()
     })
     .earlyOnce((event) => {
-      expectTypeOf(event.type).toExtend<string>()
+      expectTypeOf(event.type).toExtend<'hello' | 'goodbye' | 'third'>()
       expectTypeOf(event.data).toExtend<'world' | 'cosmos' | void>()
     })
 })
@@ -100,6 +104,13 @@ it('infers the listener return type for a single event', () => {
   expectTypeOf(emitter.once).parameter(0).returns.toExtend<number>()
   expectTypeOf(emitter.earlyOn).parameter(0).returns.toExtend<number>()
   expectTypeOf(emitter.earlyOnce).parameter(0).returns.toExtend<number>()
+
+  emitter
+    .on(
+      // @ts-expect-error string is not assignable to type number
+      () => 'invalid',
+    )
+    .on(() => 123)
 })
 
 it('infers the listener return type for multiple events', () => {
@@ -109,14 +120,45 @@ it('infers the listener return type for multiple events', () => {
     third: TypedEvent
   }>()
 
-  expectTypeOf(emitter.on).parameter(0).returns.toExtend<'world' | 'cosmos'>()
-  expectTypeOf(emitter.once).parameter(0).returns.toExtend<'world' | 'cosmos'>()
+  emitter
+    .on((event) => {
+      if (event.type === 'hello') {
+        return 'world'
+      }
+
+      if (event.type === 'goodbye') {
+        return 'cosmos'
+      }
+    })
+    .on(() => {
+      if (event.type === 'hello') {
+        // @ts-expect-error 'cosmos' is not assignable to 'world'
+        return 'cosmos'
+      }
+
+      if (event.type === 'goodbye') {
+        // @ts-expect-error 'world' is not assignable to 'cosmos'
+        return 'world'
+      }
+    })
+    .on(() => {
+      // Returning anything is allowed since the "third" event has no
+      // explicit return type, making it `any`.
+      return 123
+    })
+
+  expectTypeOf(emitter.on)
+    .parameter(0)
+    .returns.toExtend<'world' | 'cosmos' | void>()
+  expectTypeOf(emitter.once)
+    .parameter(0)
+    .returns.toExtend<'world' | 'cosmos' | void>()
   expectTypeOf(emitter.earlyOn)
     .parameter(0)
-    .returns.toExtend<'world' | 'cosmos'>()
+    .returns.toExtend<'world' | 'cosmos' | void>()
   expectTypeOf(emitter.earlyOnce)
     .parameter(0)
-    .returns.toExtend<'world' | 'cosmos'>()
+    .returns.toExtend<'world' | 'cosmos' | void>()
 })
 
 it('accepts options parameter', () => {
