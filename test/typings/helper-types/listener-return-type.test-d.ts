@@ -5,7 +5,7 @@ it('defaults to `unknown` for events without a return type', () => {
     a: TypedEvent<string>
   }>()
 
-  expectTypeOf<Emitter.ListenerReturnType<typeof emitter, 'a'>>().toBeAny()
+  expectTypeOf<Emitter.ListenerReturnType<typeof emitter, 'a'>>().toBeVoid()
 })
 
 it('defaults to `unknown` for custom events without a return type', () => {

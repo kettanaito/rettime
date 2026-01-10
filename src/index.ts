@@ -4,7 +4,7 @@ export type DefaultEventMap = {
 
 export interface TypedEvent<
   DataType = void,
-  ReturnType = any,
+  ReturnType = void,
   EventType extends string = string,
 > extends Omit<MessageEvent<DataType>, 'type'> {
   type: EventType
@@ -17,7 +17,7 @@ const kAllEvents = Symbol('kAllEvents')
 
 export class TypedEvent<
     DataType = void,
-    ReturnType = any,
+    ReturnType = void,
     EventType extends string = string,
   >
   extends MessageEvent<DataType>
@@ -65,9 +65,21 @@ export class TypedEvent<
 /**
  * Brands a TypedEvent or its subclass while preserving its (narrower) type.
  */
-type Brand<Event extends TypedEvent, EventType extends string> = Event & {
-  type: EventType
-}
+type Brand<
+  Event extends TypedEvent,
+  EventType extends string,
+  Loose extends boolean = false,
+> = Loose extends true
+  ? Event extends TypedEvent<infer Data, any, any>
+    ? /**
+       * @note Omit the `ReturnType` so emit methods can accept type events
+       * where infering the return type is impossible.
+       */
+      TypedEvent<Data, any, EventType> & {
+        type: EventType
+      }
+    : never
+  : Event & { type: EventType }
 
 type InferEventMap<Target extends Emitter<any>> =
   Target extends Emitter<infer EventMap> ? EventMap : never
@@ -346,7 +358,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * @returns {boolean} Returns `true` if the event had any listeners, `false` otherwise.
    */
   public emit<EventType extends keyof EventMap & string>(
-    event: Brand<EventMap[EventType], EventType>,
+    event: Brand<EventMap[EventType], EventType, true>,
   ): boolean {
     const typeListeners = this.#listeners[event.type] || []
     const allListeners = this.#listeners[kAllEvents] || []
@@ -404,7 +416,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * with the return values of all listeners.
    */
   public async emitAsPromise<EventType extends keyof EventMap & string>(
-    event: Brand<EventMap[EventType], EventType>,
+    event: Brand<EventMap[EventType], EventType, true>,
   ): Promise<
     Array<Emitter.ListenerReturnType<typeof this, EventType, EventMap>>
   > {
@@ -478,7 +490,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * This way, you stop exhausting the listeners once you get the expected value.
    */
   public *emitAsGenerator<EventType extends keyof EventMap & string>(
-    event: Brand<EventMap[EventType], EventType>,
+    event: Brand<EventMap[EventType], EventType, true>,
   ): Generator<Emitter.ListenerReturnType<typeof this, EventType, EventMap>> {
     const typeListeners = this.#listeners[event.type] || []
     const allListeners = this.#listeners[kAllEvents] || []

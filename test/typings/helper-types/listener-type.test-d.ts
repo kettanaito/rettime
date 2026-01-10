@@ -7,7 +7,7 @@ it('infers listener type', () => {
 
   expectTypeOf<
     Emitter.ListenerType<typeof emitter, 'greeting'>
-  >().toEqualTypeOf<(event: TypedEvent & { type: 'greeting' }) => any>()
+  >().toEqualTypeOf<(event: TypedEvent & { type: 'greeting' }) => void>()
 })
 
 it('infers listener type with explicit data type', () => {
@@ -17,7 +17,9 @@ it('infers listener type with explicit data type', () => {
 
   expectTypeOf<
     Emitter.ListenerType<typeof emitter, 'greeting'>
-  >().toEqualTypeOf<(event: TypedEvent<string> & { type: 'greeting' }) => any>()
+  >().toEqualTypeOf<
+    (event: TypedEvent<string> & { type: 'greeting' }) => void
+  >()
 })
 
 it('infers listener type with explicit return type', () => {

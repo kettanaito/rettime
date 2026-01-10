@@ -130,22 +130,32 @@ it('infers the listener return type for multiple events', () => {
         return 'cosmos'
       }
     })
-    .on(() => {
+    /**
+     * @note TypeScript doesn't support creating a discriminated union
+     * to infer return type from the `event.type` type.
+     */
+    .on((event) => {
       if (event.type === 'hello') {
-        // @ts-expect-error 'cosmos' is not assignable to 'world'
         return 'cosmos'
       }
 
       if (event.type === 'goodbye') {
-        // @ts-expect-error 'world' is not assignable to 'cosmos'
-        return 'world'
+        return 'cosmos'
       }
     })
-    .on(() => {
-      // Returning anything is allowed since the "third" event has no
-      // explicit return type, making it `any`.
-      return 123
-    })
+    .on(
+      // @ts-expect-error invalid return type
+      (event) => {
+        if (event.type === 'hello') {
+          return 'wrong'
+        }
+
+        if (event.type === 'goodbye') {
+          return 'also-wrong'
+        }
+      },
+    )
+    .on(() => {})
 
   expectTypeOf(emitter.on)
     .parameter(0)
