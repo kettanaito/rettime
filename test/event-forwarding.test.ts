@@ -12,7 +12,7 @@ it('forwards event to another emitter', () => {
 
   const event = new TypedEvent('one', { data: 'hello' })
   expect(emitterOne.emit(event)).toBe(true)
-  expect(listener).toHaveBeenCalledOnce(1)
+  expect(listener).toHaveBeenCalledOnce()
   expect(listener).toHaveBeenCalledWith(event)
 })
 
