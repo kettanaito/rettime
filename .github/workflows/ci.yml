@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,6 +45,9 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Release
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'

@@ -14,9 +14,12 @@ importers:
       '@rolldown/binding-darwin-arm64':
         specifier: 1.0.0-beta.40
         version: 1.0.0-beta.40
+      publint:
+        specifier: ^0.3.16
+        version: 0.3.16
       tsdown:
         specifier: ^0.19.0
-        version: 0.19.0(publint@0.3.15)(typescript@5.9.3)
+        version: 0.19.0(publint@0.3.16)(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -837,8 +840,8 @@ packages:
   proto-list@1.2.4:
     resolution: {integrity: sha512-vtK/94akxsTMhe0/cbfpR+syPuszcuwhqVjJq26CuNDgFGj682oRBXOP5MJpv2r7JtE8MsiepGIqvvOTBwn2vA==}
 
-  publint@0.3.15:
-    resolution: {integrity: sha512-xPbRAPW+vqdiaKy5sVVY0uFAu3LaviaPO3pZ9FaRx59l9+U/RKR1OEbLhkug87cwiVKxPXyB4txsv5cad67u+A==}
+  publint@0.3.16:
+    resolution: {integrity: sha512-MFqyfRLAExPVZdTQFwkAQELzA8idyXzROVOytg6nEJ/GEypXBUmMGrVaID8cTuzRS1U5L8yTOdOJtMXgFUJAeA==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -1325,7 +1328,7 @@ snapshots:
       outvariant: 1.4.3
       pino: 7.11.0
       pino-pretty: 7.6.1
-      publint: 0.3.15
+      publint: 0.3.16
       rc: 1.2.8
       registry-auth-token: 5.1.0
       semver: 7.7.3
@@ -1848,7 +1851,7 @@ snapshots:
 
   proto-list@1.2.4: {}
 
-  publint@0.3.15:
+  publint@0.3.16:
     dependencies:
       '@publint/pack': 0.1.2
       package-manager-detector: 1.6.0
@@ -2061,7 +2064,7 @@ snapshots:
 
   tree-kill@1.2.2: {}
 
-  tsdown@0.19.0(publint@0.3.15)(typescript@5.9.3):
+  tsdown@0.19.0(publint@0.3.16)(typescript@5.9.3):
     dependencies:
       ansis: 4.2.0
       cac: 6.7.14
@@ -2080,7 +2083,7 @@ snapshots:
       unconfig-core: 7.4.2
       unrun: 0.2.24
     optionalDependencies:
-      publint: 0.3.15
+      publint: 0.3.16
       typescript: 5.9.3
     transitivePeerDependencies:
       - '@ts-macro/tsc'

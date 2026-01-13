@@ -13,6 +13,7 @@
     "dev": "tsdown -w",
     "test": "vitest",
     "benchmark": "vitest bench",
+    "lint": "publint",
     "build": "tsdown",
     "release": "release publish"
   },
@@ -41,6 +42,7 @@
   "devDependencies": {
     "@ossjs/release": "^0.10.1",
     "@rolldown/binding-darwin-arm64": "1.0.0-beta.40",
+    "publint": "^0.3.16",
     "tsdown": "^0.19.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
