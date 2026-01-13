@@ -2,6 +2,19 @@ export type DefaultEventMap = {
   [eventType: string]: TypedEvent<any, any>
 }
 
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I,
+) => void
+  ? I
+  : never
+
+type MergeEventMaps<EventMap extends DefaultEventMap> =
+  UnionToIntersection<EventMap> extends infer Merged
+    ? Merged extends DefaultEventMap
+      ? Merged
+      : EventMap
+    : EventMap
+
 export interface TypedEvent<
   DataType = void,
   ReturnType = void,
@@ -103,7 +116,7 @@ type AllEventsReturnType<EventMap extends DefaultEventMap> = {
  */
 type AllEventsListenerType<
   Target extends Emitter<any>,
-  EventMap extends DefaultEventMap,
+  EventMap extends DefaultEventMap = MergeEventMaps<InferEventMap<Target>>,
 > = (
   event: AllEvents<EventMap>,
 ) => AllEventsReturnType<EventMap> extends [void]
@@ -112,7 +125,7 @@ type AllEventsListenerType<
 
 type InternalListenersMap<
   Target extends Emitter<any>,
-  EventMap extends DefaultEventMap = InferEventMap<Target>,
+  EventMap extends DefaultEventMap = MergeEventMaps<InferEventMap<Target>>,
   EventType extends string = keyof EventMap & string,
 > = Record<
   keyof EventMap | typeof kAllEvents,
@@ -138,13 +151,13 @@ export namespace Emitter {
   export type EventType<
     Target extends Emitter<any>,
     EventType extends keyof EventMap & string,
-    EventMap extends DefaultEventMap = InferEventMap<Target>,
+    EventMap extends DefaultEventMap = MergeEventMaps<InferEventMap<Target>>,
   > = Brand<EventMap[EventType], EventType>
 
   export type EventDataType<
     Target extends Emitter<any>,
     EventType extends keyof EventMap & string,
-    EventMap extends DefaultEventMap = InferEventMap<Target>,
+    EventMap extends DefaultEventMap = MergeEventMaps<InferEventMap<Target>>,
   > = EventMap[EventType] extends TypedEvent<infer DataType> ? DataType : never
 
   /**
@@ -158,7 +171,7 @@ export namespace Emitter {
   export type ListenerType<
     Target extends Emitter<any>,
     Type extends keyof EventMap & string,
-    EventMap extends DefaultEventMap = InferEventMap<Target>,
+    EventMap extends DefaultEventMap = MergeEventMaps<InferEventMap<Target>>,
   > = (
     event: Emitter.EventType<Target, Type, EventMap>,
   ) => Emitter.ListenerReturnType<Target, Type, EventMap> extends [void]
@@ -176,7 +189,7 @@ export namespace Emitter {
   export type ListenerReturnType<
     Target extends Emitter<any>,
     EventType extends keyof EventMap & string,
-    EventMap extends DefaultEventMap = InferEventMap<Target>,
+    EventMap extends DefaultEventMap = MergeEventMaps<InferEventMap<Target>>,
   > =
     EventMap[EventType] extends TypedEvent<unknown, infer ReturnType>
       ? ReturnType
@@ -184,33 +197,36 @@ export namespace Emitter {
 }
 
 export class Emitter<EventMap extends DefaultEventMap> {
-  #listeners: InternalListenersMap<typeof this, EventMap>
+  #listeners: InternalListenersMap<typeof this, MergeEventMaps<EventMap>>
 
   constructor() {
-    this.#listeners = {} as InternalListenersMap<typeof this, EventMap>
+    this.#listeners = {} as InternalListenersMap<
+      typeof this,
+      MergeEventMaps<EventMap>
+    >
   }
 
   /**
    * Adds a listener for the given event type.
    * When called without a type, adds a listener for all events.
    */
-  public on<EventType extends keyof EventMap & string>(
+  public on<EventType extends keyof MergeEventMaps<EventMap> & string>(
     type: EventType,
-    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
+    listener: Emitter.ListenerType<typeof this, EventType>,
     options?: TypedListenerOptions,
   ): typeof this
   public on(
-    listener: AllEventsListenerType<typeof this, EventMap>,
+    listener: AllEventsListenerType<typeof this>,
     options?: TypedListenerOptions,
   ): typeof this
-  public on<EventType extends keyof EventMap & string>(
+  public on<EventType extends keyof MergeEventMaps<EventMap> & string>(
     typeOrListener:
       | EventType
       | ((
-          event: EventMap[EventType],
-        ) => Emitter.ListenerReturnType<typeof this, EventType, EventMap>),
+          event: MergeEventMaps<EventMap>[EventType],
+        ) => Emitter.ListenerReturnType<typeof this, EventType>),
     listenerOrOptions?:
-      | Emitter.ListenerType<typeof this, EventType, EventMap>
+      | Emitter.ListenerType<typeof this, EventType>
       | TypedListenerOptions,
     options?: TypedListenerOptions,
   ): typeof this {
@@ -224,11 +240,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
     return this.#addListener(
       typeOrListener,
-      listenerOrOptions as Emitter.ListenerType<
-        typeof this,
-        EventType,
-        EventMap
-      >,
+      listenerOrOptions as Emitter.ListenerType<typeof this, EventType>,
       options,
     )
   }
@@ -237,23 +249,23 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * Adds a one-time listener for the given event type.
    * When called without a type, adds a one-time listener for all events.
    */
-  public once<EventType extends keyof EventMap & string>(
+  public once<EventType extends keyof MergeEventMaps<EventMap> & string>(
     type: EventType,
-    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
+    listener: Emitter.ListenerType<typeof this, EventType>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this
   public once(
-    listener: AllEventsListenerType<typeof this, EventMap>,
+    listener: AllEventsListenerType<typeof this>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this
-  public once<EventType extends keyof EventMap & string>(
+  public once<EventType extends keyof MergeEventMaps<EventMap> & string>(
     typeOrListener:
       | EventType
       | ((
-          event: EventMap[EventType],
-        ) => Emitter.ListenerReturnType<typeof this, EventType, EventMap>),
+          event: MergeEventMaps<EventMap>[EventType],
+        ) => Emitter.ListenerReturnType<typeof this, EventType>),
     listenerOrOptions?:
-      | Emitter.ListenerType<typeof this, EventType, EventMap>
+      | Emitter.ListenerType<typeof this, EventType>
       | Omit<TypedListenerOptions, 'once'>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this {
@@ -274,23 +286,23 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * Prepends a listener for the given event type.
    * When called without a type, prepends a listener for all events.
    */
-  public earlyOn<EventType extends keyof EventMap & string>(
+  public earlyOn<EventType extends keyof MergeEventMaps<EventMap> & string>(
     type: EventType,
-    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
+    listener: Emitter.ListenerType<typeof this, EventType>,
     options?: TypedListenerOptions,
   ): typeof this
   public earlyOn(
-    listener: AllEventsListenerType<typeof this, EventMap>,
+    listener: AllEventsListenerType<typeof this>,
     options?: TypedListenerOptions,
   ): typeof this
-  public earlyOn<EventType extends keyof EventMap & string>(
+  public earlyOn<EventType extends keyof MergeEventMaps<EventMap> & string>(
     typeOrListener:
       | EventType
       | ((
-          event: EventMap[EventType],
-        ) => Emitter.ListenerReturnType<typeof this, EventType, EventMap>),
+          event: MergeEventMaps<EventMap>[EventType],
+        ) => Emitter.ListenerReturnType<typeof this, EventType>),
     listenerOrOptions?:
-      | Emitter.ListenerType<typeof this, EventType, EventMap>
+      | Emitter.ListenerType<typeof this, EventType>
       | TypedListenerOptions,
     options?: TypedListenerOptions,
   ): typeof this {
@@ -305,11 +317,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
     return this.#addListener(
       typeOrListener,
-      listenerOrOptions as Emitter.ListenerType<
-        typeof this,
-        EventType,
-        EventMap
-      >,
+      listenerOrOptions as Emitter.ListenerType<typeof this, EventType>,
       options,
       'prepend',
     )
@@ -319,23 +327,23 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * Prepends a one-time listener for the given event type.
    * When called without a type, prepends a one-time listener for all events.
    */
-  public earlyOnce<EventType extends keyof EventMap & string>(
+  public earlyOnce<EventType extends keyof MergeEventMaps<EventMap> & string>(
     type: EventType,
-    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
+    listener: Emitter.ListenerType<typeof this, EventType>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this
   public earlyOnce(
-    listener: AllEventsListenerType<typeof this, EventMap>,
+    listener: AllEventsListenerType<typeof this>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this
-  public earlyOnce<EventType extends keyof EventMap & string>(
+  public earlyOnce<EventType extends keyof MergeEventMaps<EventMap> & string>(
     typeOrListener:
       | EventType
       | ((
-          event: EventMap[EventType],
-        ) => Emitter.ListenerReturnType<typeof this, EventType, EventMap>),
+          event: MergeEventMaps<EventMap>[EventType],
+        ) => Emitter.ListenerReturnType<typeof this, EventType>),
     listenerOrOptions?:
-      | Emitter.ListenerType<typeof this, EventType, EventMap>
+      | Emitter.ListenerType<typeof this, EventType>
       | Omit<TypedListenerOptions, 'once'>,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this {
@@ -357,8 +365,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
    *
    * @returns {boolean} Returns `true` if the event had any listeners, `false` otherwise.
    */
-  public emit<EventType extends keyof EventMap & string>(
-    event: Brand<EventMap[EventType], EventType, true>,
+  public emit<EventType extends keyof MergeEventMaps<EventMap> & string>(
+    event: Brand<MergeEventMaps<EventMap>[EventType], EventType, true>,
   ): boolean {
     const typeListeners = this.#listeners[event.type] || []
     const allListeners = this.#listeners[kAllEvents] || []
@@ -415,11 +423,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * @returns {Promise<Array<Emitter.ListenerReturnType>>} A promise that resolves
    * with the return values of all listeners.
    */
-  public async emitAsPromise<EventType extends keyof EventMap & string>(
-    event: Brand<EventMap[EventType], EventType, true>,
-  ): Promise<
-    Array<Emitter.ListenerReturnType<typeof this, EventType, EventMap>>
-  > {
+  public async emitAsPromise<
+    EventType extends keyof MergeEventMaps<EventMap> & string,
+  >(
+    event: Brand<MergeEventMaps<EventMap>[EventType], EventType, true>,
+  ): Promise<Array<Emitter.ListenerReturnType<typeof this, EventType>>> {
     const typeListeners = this.#listeners[event.type] || []
     const allListeners = this.#listeners[kAllEvents] || []
 
@@ -428,7 +436,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
     }
 
     const pendingListeners: Array<
-      Promise<Emitter.ListenerReturnType<typeof this, EventType, EventMap>>
+      Promise<Emitter.ListenerReturnType<typeof this, EventType>>
     > = []
 
     const proxiedEvent = this.#proxyEvent(event)
@@ -489,9 +497,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * the result of each listener in the order of their registration.
    * This way, you stop exhausting the listeners once you get the expected value.
    */
-  public *emitAsGenerator<EventType extends keyof EventMap & string>(
-    event: Brand<EventMap[EventType], EventType, true>,
-  ): Generator<Emitter.ListenerReturnType<typeof this, EventType, EventMap>> {
+  public *emitAsGenerator<
+    EventType extends keyof MergeEventMaps<EventMap> & string,
+  >(
+    event: Brand<MergeEventMaps<EventMap>[EventType], EventType, true>,
+  ): Generator<Emitter.ListenerReturnType<typeof this, EventType>> {
     const typeListeners = this.#listeners[event.type] || []
     const allListeners = this.#listeners[kAllEvents] || []
 
@@ -541,17 +551,18 @@ export class Emitter<EventMap extends DefaultEventMap> {
   /**
    * Removes a listener for the given event type.
    */
-  public removeListener<EventType extends keyof EventMap & string>(
+  public removeListener<
+    EventType extends keyof MergeEventMaps<EventMap> & string,
+  >(
     type: EventType,
-    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
+    listener: Emitter.ListenerType<typeof this, EventType>,
   ): void {
     if (this.listenerCount(type) === 0) {
       return
     }
 
-    const nextListeners: Array<
-      Emitter.ListenerType<typeof this, EventType, EventMap>
-    > = []
+    const nextListeners: Array<Emitter.ListenerType<typeof this, EventType>> =
+      []
 
     for (const existingListener of this.#listeners[type]) {
       if (existingListener !== listener) {
@@ -566,9 +577,9 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * Removes all listeners for the given event type.
    * If no event type is provided, removes all existing listeners.
    */
-  public removeAllListeners<EventType extends keyof EventMap & string>(
-    type?: EventType,
-  ): void {
+  public removeAllListeners<
+    EventType extends keyof MergeEventMaps<EventMap> & string,
+  >(type?: EventType): void {
     if (type == null) {
       this.#listeners = {} as InternalListenersMap<typeof this>
       return
@@ -581,9 +592,9 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * Returns the list of listeners for the given event type.
    * If no even type is provided, returns all listeners.
    */
-  public listeners<EventType extends keyof EventMap & string>(
+  public listeners<EventType extends keyof MergeEventMaps<EventMap> & string>(
     type?: EventType,
-  ): Array<Emitter.ListenerType<typeof this, EventType, EventMap>> {
+  ): Array<Emitter.ListenerType<typeof this, EventType>> {
     if (type == null) {
       return Object.values(this.#listeners).flat()
     }
@@ -595,15 +606,15 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * Returns the number of listeners for the given event type.
    * If no even type is provided, returns the total number of listeners.
    */
-  public listenerCount<EventType extends keyof EventMap & string>(
-    type?: EventType,
-  ): number {
+  public listenerCount<
+    EventType extends keyof MergeEventMaps<EventMap> & string,
+  >(type?: EventType): number {
     return this.listeners(type).length
   }
 
-  #addListener<EventType extends keyof EventMap & string>(
+  #addListener<EventType extends keyof MergeEventMaps<EventMap> & string>(
     type: EventType | typeof kAllEvents,
-    listener: Emitter.ListenerType<typeof this, EventType, EventMap>,
+    listener: Emitter.ListenerType<typeof this, EventType>,
     options: TypedListenerOptions | undefined,
     insertMode: 'append' | 'prepend' = 'append',
   ): typeof this {
@@ -665,9 +676,9 @@ export class Emitter<EventMap extends DefaultEventMap> {
     }
   }
 
-  #callListener<EventType extends keyof EventMap & string>(
+  #callListener<EventType extends keyof MergeEventMaps<EventMap> & string>(
     event: Event,
-    listener: Emitter.ListenerType<typeof this, EventType, EventMap> & {
+    listener: Emitter.ListenerType<typeof this, EventType> & {
       [kListenerOptions]?: TypedListenerOptions
     },
     listenerType: EventType | typeof kAllEvents,
