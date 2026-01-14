@@ -441,3 +441,27 @@ describe('all-events listeners with generator emit', () => {
     expect(allListener).not.toHaveBeenCalled()
   })
 })
+
+it('returns a typeless listener when listing all listeners', () => {
+  const emitter = new Emitter()
+  const listener = vi.fn()
+  emitter.on(listener)
+
+  expect(emitter.listeners()).toEqual([listener])
+  expect(emitter.listenerCount()).toBe(1)
+})
+
+it('returns a typess listener when listing listeners for a certain type', () => {
+  const emitter = new Emitter()
+  const listener = vi.fn()
+  emitter.on(listener)
+
+  /**
+   * @note Since typeless listeners match all events, they must be listed
+   * when you list any particular event type. The library does not assume
+   * whether you've handled "one" in the typeless listener.
+   */
+  expect(emitter.listeners('one')).toEqual([listener])
+  expect(emitter.listenerCount()).toBe(1)
+  expect(emitter.listenerCount('one')).toBe(1)
+})

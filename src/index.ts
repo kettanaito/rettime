@@ -584,11 +584,13 @@ export class Emitter<EventMap extends DefaultEventMap> {
   public listeners<EventType extends keyof EventMap & string>(
     type?: EventType,
   ): Array<Emitter.ListenerType<typeof this, EventType, EventMap>> {
-    if (type == null) {
-      return Object.values(this.#listeners).flat()
-    }
+    const exactListeners =
+      type == null
+        ? Object.values(this.#listeners).flat()
+        : this.#listeners[type] || []
+    const typelessListeners = this.#listeners[kAllEvents] || []
 
-    return this.#listeners[type] || []
+    return [...exactListeners, ...typelessListeners]
   }
 
   /**
