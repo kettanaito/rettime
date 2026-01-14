@@ -108,3 +108,15 @@ it('stops calling listeners if the propagation is stopped', async () => {
   expect(listenerOne).toHaveBeenCalledTimes(1)
   expect(listenerTwo).toHaveBeenCalledTimes(1)
 })
+
+it('returns false for a custom event without any listeners', () => {
+  class CustomEvent<
+    DataType = void,
+    ReturnType = void,
+    EventType extends string = string,
+  > extends TypedEvent<DataType, ReturnType, EventType> {}
+
+  const emitter = new Emitter()
+
+  expect(emitter.emit(new CustomEvent('foo'))).toBe(false)
+})
