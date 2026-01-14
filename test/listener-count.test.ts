@@ -9,6 +9,7 @@ it('returns the total number of listeners', () => {
   const emitter = new Emitter()
   emitter.on('test', () => {})
   emitter.on('test', () => {})
+
   expect(emitter.listenerCount()).toBe(2)
 })
 
@@ -17,6 +18,8 @@ it('returns the total number of listeners for a specific event type', () => {
   emitter.on('test', () => {})
   emitter.on('test', () => {})
   emitter.on('other', () => {})
-  expect(emitter.listenerCount('test')).toBe(2)
-  expect(emitter.listenerCount('other')).toBe(1)
+
+  expect.soft(emitter.listenerCount('test')).toBe(2)
+  expect.soft(emitter.listenerCount('other')).toBe(1)
+  expect.soft(emitter.listenerCount('missing')).toBe(0)
 })

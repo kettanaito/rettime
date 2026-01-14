@@ -6,9 +6,8 @@ it('emits event without any data', () => {
   emitter.on('hello', listener)
 
   const event = new TypedEvent('hello')
-  const hasListeners = emitter.emit(event)
 
-  expect(hasListeners).toBe(true)
+  expect(emitter.emit(event)).toBe(true)
   expect(listener).toHaveBeenCalledTimes(1)
   expect(listener).toHaveBeenCalledWith(event)
 })
@@ -34,9 +33,8 @@ it('calls all listeners for the event', () => {
   emitter.on('hello', listenerTwo)
 
   const event = new TypedEvent('hello')
-  const hasListeners = emitter.emit(event)
 
-  expect(hasListeners).toBe(true)
+  expect(emitter.emit(event)).toBe(true)
   expect(listenerOne).toHaveBeenCalledTimes(1)
   expect(listenerOne).toHaveBeenCalledWith(event)
   expect(listenerTwo).toHaveBeenCalledTimes(1)
@@ -50,9 +48,8 @@ it('does not call listeners for non-matching event', () => {
   }>()
   const listener = vi.fn<Emitter.ListenerType<typeof emitter, 'one'>>()
   emitter.on('one', listener)
-  const hasListeners = emitter.emit(new TypedEvent('two'))
 
-  expect(hasListeners).toBe(false)
+  expect(emitter.emit(new TypedEvent('two'))).toBe(false)
   expect(listener).not.toHaveBeenCalled()
 })
 
