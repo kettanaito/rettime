@@ -280,17 +280,15 @@ export class Emitter<EventMap extends DefaultEventMap> {
   public emit<EventType extends keyof EventMap & string>(
     event: Brand<EventMap[EventType], EventType, true>,
   ): boolean {
-    const typelessListeners = this.#listeners['*'] || []
-    const typeListeners = this.#listeners[event.type] || []
-    const allListeners = [...typelessListeners, ...typeListeners]
+    const listeners = this.#getAllListeners(event.type)
 
-    if (allListeners.length === 0) {
+    if (listeners.length === 0) {
       return false
     }
 
     const proxiedEvent = this.#proxyEvent(event)
 
-    for (const listener of allListeners) {
+    for (const listener of listeners) {
       if (
         proxiedEvent.event[kPropagationStopped] != null &&
         proxiedEvent.event[kPropagationStopped] !== this
@@ -323,11 +321,9 @@ export class Emitter<EventMap extends DefaultEventMap> {
   ): Promise<
     Array<Emitter.ListenerReturnType<typeof this, EventType, EventMap>>
   > {
-    const typelessListeners = this.#listeners['*'] || []
-    const typeListeners = this.#listeners[event.type] || []
-    const allListeners = [...typelessListeners, ...typeListeners]
+    const listeners = this.#getAllListeners(event.type)
 
-    if (allListeners.length === 0) {
+    if (listeners.length === 0) {
       return []
     }
 
@@ -337,7 +333,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
     const proxiedEvent = this.#proxyEvent(event)
 
-    for (const listener of allListeners) {
+    for (const listener of listeners) {
       if (
         proxiedEvent.event[kPropagationStopped] != null &&
         proxiedEvent.event[kPropagationStopped] !== this
@@ -374,17 +370,15 @@ export class Emitter<EventMap extends DefaultEventMap> {
   public *emitAsGenerator<EventType extends keyof EventMap & string>(
     event: Brand<EventMap[EventType], EventType, true>,
   ): Generator<Emitter.ListenerReturnType<typeof this, EventType, EventMap>> {
-    const typelessListeners = this.#listeners['*'] || []
-    const typeListeners = this.#listeners[event.type] || []
-    const allListeners = [...typelessListeners, ...typeListeners]
+    const listeners = this.#getAllListeners(event.type)
 
-    if (allListeners.length === 0) {
+    if (listeners.length === 0) {
       return
     }
 
     const proxiedEvent = this.#proxyEvent(event)
 
-    for (const listener of allListeners) {
+    for (const listener of listeners) {
       if (
         proxiedEvent.event[kPropagationStopped] != null &&
         proxiedEvent.event[kPropagationStopped] !== this
@@ -553,5 +547,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
     }
 
     return returnValue
+  }
+
+  #getAllListeners<EventType extends keyof EventMap & string>(type: EventType) {
+    const typelessListeners = this.#listeners['*'] || []
+    const typeListeners = this.#listeners[type] || []
+    return [...typelessListeners, ...typeListeners]
   }
 }
