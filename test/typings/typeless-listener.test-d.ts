@@ -6,19 +6,19 @@ it('infers the event data type for an event without data', () => {
   }>()
 
   emitter
-    .on((event) => {
+    .on('*', (event) => {
       expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<void>()
     })
-    .once((event) => {
+    .once('*', (event) => {
       expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<void>()
     })
-    .earlyOn((event) => {
+    .earlyOn('*', (event) => {
       expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<void>()
     })
-    .earlyOnce((event) => {
+    .earlyOnce('*', (event) => {
       expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<void>()
     })
@@ -30,19 +30,19 @@ it('infers the event data type for a single event', () => {
   }>()
 
   emitter
-    .on((event) => {
+    .on('*', (event) => {
       expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<'world'>()
     })
-    .once((event) => {
+    .once('*', (event) => {
       expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<'world'>()
     })
-    .earlyOn((event) => {
+    .earlyOn('*', (event) => {
       expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<'world'>()
     })
-    .earlyOnce((event) => {
+    .earlyOnce('*', (event) => {
       expectTypeOf(event.type).toExtend<'hello'>()
       expectTypeOf(event.data).toExtend<'world'>()
     })
@@ -56,19 +56,19 @@ it('infers the event data type for multiple events', () => {
   }>()
 
   emitter
-    .on((event) => {
+    .on('*', (event) => {
       expectTypeOf(event.type).toExtend<'hello' | 'goodbye' | 'third'>()
       expectTypeOf(event.data).toExtend<'world' | 'cosmos' | void>()
     })
-    .once((event) => {
+    .once('*', (event) => {
       expectTypeOf(event.type).toExtend<'hello' | 'goodbye' | 'third'>()
       expectTypeOf(event.data).toExtend<'world' | 'cosmos' | void>()
     })
-    .earlyOn((event) => {
+    .earlyOn('*', (event) => {
       expectTypeOf(event.type).toExtend<'hello' | 'goodbye' | 'third'>()
       expectTypeOf(event.data).toExtend<'world' | 'cosmos' | void>()
     })
-    .earlyOnce((event) => {
+    .earlyOnce('*', (event) => {
       expectTypeOf(event.type).toExtend<'hello' | 'goodbye' | 'third'>()
       expectTypeOf(event.data).toExtend<'world' | 'cosmos' | void>()
     })
@@ -87,7 +87,7 @@ it('infers the event data type for custom events', () => {
     farewell: FarewellEvent
   }>()
 
-  emitter.on((event) => {
+  emitter.on('*', (event) => {
     expectTypeOf(event).toExtend<GreetingEvent | FarewellEvent>()
 
     expectTypeOf('id' in event && event.id).toExtend<string>()
@@ -107,10 +107,11 @@ it('infers the listener return type for a single event', () => {
 
   emitter
     .on(
+      '*',
       // @ts-expect-error string is not assignable to type number
       () => 'invalid',
     )
-    .on(() => 123)
+    .on('*', () => 123)
 })
 
 it('infers the listener return type for multiple events', () => {
@@ -121,7 +122,7 @@ it('infers the listener return type for multiple events', () => {
   }>()
 
   emitter
-    .on((event) => {
+    .on('*', (event) => {
       if (event.type === 'hello') {
         return 'world'
       }
@@ -134,7 +135,7 @@ it('infers the listener return type for multiple events', () => {
      * @note TypeScript doesn't support creating a discriminated union
      * to infer return type from the `event.type` type.
      */
-    .on((event) => {
+    .on('*', (event) => {
       if (event.type === 'hello') {
         return 'cosmos'
       }
@@ -144,6 +145,7 @@ it('infers the listener return type for multiple events', () => {
       }
     })
     .on(
+      '*',
       // @ts-expect-error invalid return type
       (event) => {
         if (event.type === 'hello') {
@@ -155,7 +157,7 @@ it('infers the listener return type for multiple events', () => {
         }
       },
     )
-    .on(() => {})
+    .on('*', () => {})
 
   expectTypeOf(emitter.on)
     .parameter(0)
@@ -175,9 +177,9 @@ it('accepts options parameter', () => {
   const emitter = new Emitter<{ greeting: TypedEvent }>()
   const controller = new AbortController()
 
-  emitter.on(() => void 0, { signal: controller.signal })
-  emitter.on(() => void 0, { once: true })
-  emitter.once(() => void 0, { signal: controller.signal })
-  emitter.earlyOn(() => void 0, { signal: controller.signal })
-  emitter.earlyOnce(() => void 0, { signal: controller.signal })
+  emitter.on('*', () => void 0, { signal: controller.signal })
+  emitter.on('*', () => void 0, { once: true })
+  emitter.once('*', () => void 0, { signal: controller.signal })
+  emitter.earlyOn('*', () => void 0, { signal: controller.signal })
+  emitter.earlyOnce('*', () => void 0, { signal: controller.signal })
 })

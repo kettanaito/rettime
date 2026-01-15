@@ -7,7 +7,7 @@ describe('on (without type)', () => {
       goodbye: TypedEvent
     }>()
     const listener = vi.fn()
-    emitter.on(listener)
+    emitter.on('*', listener)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(listener).toHaveBeenCalledTimes(1)
@@ -25,7 +25,7 @@ describe('on (without type)', () => {
     const helloListener = vi.fn()
     const goodbyeListener = vi.fn()
 
-    emitter.on(allListener)
+    emitter.on('*', allListener)
     emitter.on('hello', helloListener)
     emitter.on('goodbye', goodbyeListener)
 
@@ -48,8 +48,8 @@ describe('on (without type)', () => {
     const listenerOne = vi.fn()
     const listenerTwo = vi.fn()
 
-    emitter.on(listenerOne)
-    emitter.on(listenerTwo)
+    emitter.on('*', listenerOne)
+    emitter.on('*', listenerTwo)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(listenerOne).toHaveBeenCalledTimes(1)
@@ -66,7 +66,7 @@ describe('on (without type)', () => {
     const typedListener = vi.fn()
 
     emitter.on('hello', typedListener)
-    emitter.on(allListener)
+    emitter.on('*', allListener)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(typedListener).toHaveBeenCalledOnce()
@@ -79,7 +79,7 @@ describe('on (without type)', () => {
   it('receives events with data', () => {
     const emitter = new Emitter<{ hello: TypedEvent<string> }>()
     const listener = vi.fn()
-    emitter.on(listener)
+    emitter.on('*', listener)
 
     const event = new TypedEvent('hello', { data: 'world' })
     expect(emitter.emit(event)).toBe(true)
@@ -92,7 +92,7 @@ describe('on (without type)', () => {
     const listener = vi.fn()
     const controller = new AbortController()
 
-    emitter.on(listener, { signal: controller.signal })
+    emitter.on('*', listener, { signal: controller.signal })
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(listener).toHaveBeenCalledTimes(1)
@@ -112,7 +112,7 @@ describe('once (without type)', () => {
       goodbye: TypedEvent
     }>()
     const listener = vi.fn()
-    emitter.once(listener)
+    emitter.once('*', listener)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(listener).toHaveBeenCalledTimes(1)
@@ -125,7 +125,7 @@ describe('once (without type)', () => {
   it('removes itself after being called once', () => {
     const emitter = new Emitter<{ hello: TypedEvent }>()
     const listener = vi.fn()
-    emitter.once(listener)
+    emitter.once('*', listener)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(listener).toHaveBeenCalledTimes(1)
@@ -160,7 +160,7 @@ describe('once (without type)', () => {
     const listener = vi.fn()
     const controller = new AbortController()
 
-    emitter.once(listener, { signal: controller.signal })
+    emitter.once('*', listener, { signal: controller.signal })
 
     controller.abort()
     expect(emitter.emit(new TypedEvent('hello'))).toBe(false)
@@ -269,7 +269,7 @@ describe('earlyOnce (without type)', () => {
     const listenerTwo = vi.fn()
 
     emitter.on(listenerOne)
-    emitter.earlyOnce(listenerTwo)
+    emitter.earlyOnce('*', listenerTwo)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(listenerTwo).toHaveBeenCalledOnce()
@@ -319,7 +319,7 @@ describe('earlyOnce (without type)', () => {
     const listener = vi.fn()
     const controller = new AbortController()
 
-    emitter.earlyOnce(listener, { signal: controller.signal })
+    emitter.earlyOnce('*', listener, { signal: controller.signal })
 
     controller.abort()
     expect(emitter.emit(new TypedEvent('hello'))).toBe(false)
@@ -378,7 +378,7 @@ describe('all-events listeners with async emit', () => {
     const typedListener = vi.fn(() => 'typed')
 
     emitter.on('hello', typedListener)
-    emitter.on(allListener)
+    emitter.on('*', allListener)
 
     const result = await emitter.emitAsPromise(new TypedEvent('hello'))
 
@@ -413,7 +413,7 @@ describe('all-events listeners with generator emit', () => {
     const allListener = vi.fn(() => 'all')
 
     emitter.on('hello', typedListener)
-    emitter.on(allListener)
+    emitter.on('*', allListener)
 
     const generator = emitter.emitAsGenerator(new TypedEvent('hello'))
 
@@ -431,7 +431,7 @@ describe('all-events listeners with generator emit', () => {
     const allListener = vi.fn(() => 2)
 
     emitter.on('hello', typedListener)
-    emitter.on(allListener)
+    emitter.on('*', allListener)
 
     const generator = emitter.emitAsGenerator(new TypedEvent('hello'))
 
@@ -445,7 +445,7 @@ describe('all-events listeners with generator emit', () => {
 it('returns a typeless listener when listing all listeners', () => {
   const emitter = new Emitter()
   const listener = vi.fn()
-  emitter.on(listener)
+  emitter.on('*', listener)
 
   expect(emitter.listeners()).toEqual([listener])
   expect(emitter.listenerCount()).toBe(1)
@@ -454,14 +454,10 @@ it('returns a typeless listener when listing all listeners', () => {
 it('returns a typess listener when listing listeners for a certain type', () => {
   const emitter = new Emitter()
   const listener = vi.fn()
-  emitter.on(listener)
+  emitter.on('*', listener)
 
-  /**
-   * @note Since typeless listeners match all events, they must be listed
-   * when you list any particular event type. The library does not assume
-   * whether you've handled "one" in the typeless listener.
-   */
-  expect(emitter.listeners('one')).toEqual([listener])
+  expect(emitter.listeners()).toEqual([listener])
+  expect(emitter.listeners('one')).toEqual([])
   expect(emitter.listenerCount()).toBe(1)
-  expect(emitter.listenerCount('one')).toBe(1)
+  expect(emitter.listenerCount('one')).toBe(0)
 })
