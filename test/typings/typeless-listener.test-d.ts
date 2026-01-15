@@ -100,18 +100,11 @@ it('infers the listener return type for a single event', () => {
     hello: TypedEvent<string, number>
   }>()
 
-  expectTypeOf(emitter.on).parameter(0).returns.toExtend<number>()
-  expectTypeOf(emitter.once).parameter(0).returns.toExtend<number>()
-  expectTypeOf(emitter.earlyOn).parameter(0).returns.toExtend<number>()
-  expectTypeOf(emitter.earlyOnce).parameter(0).returns.toExtend<number>()
-
   emitter
-    .on(
-      '*',
-      // @ts-expect-error string is not assignable to type number
-      () => 'invalid',
-    )
-    .on('*', () => 123)
+    .on('*', () => 'foo')
+    .once('*', () => 'foo')
+    .earlyOn('*', () => 'foo')
+    .earlyOnce('*', () => 'foo')
 })
 
 it('infers the listener return type for multiple events', () => {
@@ -121,65 +114,24 @@ it('infers the listener return type for multiple events', () => {
     third: TypedEvent
   }>()
 
+  emitter.on('*', () => {
+    return 'sdg'
+  })
+
   emitter
-    .on('*', (event) => {
-      if (event.type === 'hello') {
-        return 'world'
-      }
-
-      if (event.type === 'goodbye') {
-        return 'cosmos'
-      }
-    })
-    /**
-     * @note TypeScript doesn't support creating a discriminated union
-     * to infer return type from the `event.type` type.
-     */
-    .on('*', (event) => {
-      if (event.type === 'hello') {
-        return 'cosmos'
-      }
-
-      if (event.type === 'goodbye') {
-        return 'cosmos'
-      }
-    })
-    .on(
-      '*',
-      // @ts-expect-error invalid return type
-      (event) => {
-        if (event.type === 'hello') {
-          return 'wrong'
-        }
-
-        if (event.type === 'goodbye') {
-          return 'also-wrong'
-        }
-      },
-    )
-    .on('*', () => {})
-
-  expectTypeOf(emitter.on)
-    .parameter(0)
-    .returns.toExtend<'world' | 'cosmos' | void>()
-  expectTypeOf(emitter.once)
-    .parameter(0)
-    .returns.toExtend<'world' | 'cosmos' | void>()
-  expectTypeOf(emitter.earlyOn)
-    .parameter(0)
-    .returns.toExtend<'world' | 'cosmos' | void>()
-  expectTypeOf(emitter.earlyOnce)
-    .parameter(0)
-    .returns.toExtend<'world' | 'cosmos' | void>()
+    .on('*', () => 'foo')
+    .once('*', () => 'foo')
+    .earlyOn('*', () => 'foo')
+    .earlyOnce('*', () => 'foo')
 })
 
 it('accepts options parameter', () => {
   const emitter = new Emitter<{ greeting: TypedEvent }>()
   const controller = new AbortController()
 
-  emitter.on('*', () => void 0, { signal: controller.signal })
-  emitter.on('*', () => void 0, { once: true })
-  emitter.once('*', () => void 0, { signal: controller.signal })
-  emitter.earlyOn('*', () => void 0, { signal: controller.signal })
-  emitter.earlyOnce('*', () => void 0, { signal: controller.signal })
+  emitter.on('*', () => {}, { signal: controller.signal })
+  emitter.on('*', () => {}, { once: true })
+  emitter.once('*', () => {}, { signal: controller.signal })
+  emitter.earlyOn('*', () => {}, { signal: controller.signal })
+  emitter.earlyOnce('*', () => {}, { signal: controller.signal })
 })

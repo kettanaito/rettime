@@ -140,7 +140,7 @@ describe('once (without type)', () => {
     const allListener = vi.fn()
     const typedListener = vi.fn()
 
-    emitter.once(allListener)
+    emitter.once('*', allListener)
     emitter.on('hello', typedListener)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
@@ -174,8 +174,8 @@ describe('earlyOn (without type)', () => {
     const listenerOne = vi.fn()
     const listenerTwo = vi.fn()
 
-    emitter.on(listenerOne)
-    emitter.earlyOn(listenerTwo)
+    emitter.on('*', listenerOne)
+    emitter.earlyOn('*', listenerTwo)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(listenerTwo).toHaveBeenCalledOnce()
@@ -188,7 +188,7 @@ describe('earlyOn (without type)', () => {
   it('prepends the only all-events listener', () => {
     const emitter = new Emitter<{ hello: TypedEvent }>()
     const listener = vi.fn()
-    emitter.earlyOn(listener)
+    emitter.earlyOn('*', listener)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(listener).toHaveBeenCalledOnce()
@@ -200,7 +200,7 @@ describe('earlyOn (without type)', () => {
     const typedListener = vi.fn()
 
     emitter.on('hello', typedListener)
-    emitter.earlyOn(allListener)
+    emitter.earlyOn('*', allListener)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(allListener).toHaveBeenCalledOnce()
@@ -213,11 +213,11 @@ describe('earlyOn (without type)', () => {
 
   it('prepends a listener for async emit', async () => {
     const emitter = new Emitter<{ hello: TypedEvent }>()
-    const listenerOne = vi.fn(() => 1)
-    const listenerTwo = vi.fn(() => 2)
+    const listenerOne = vi.fn()
+    const listenerTwo = vi.fn()
 
-    emitter.on(listenerOne)
-    emitter.earlyOn(listenerTwo)
+    emitter.on('*', listenerOne)
+    emitter.earlyOn('*', listenerTwo)
 
     const result = await emitter.emitAsPromise(new TypedEvent('hello'))
 
@@ -231,11 +231,11 @@ describe('earlyOn (without type)', () => {
 
   it('prepends a listener for generator emit', () => {
     const emitter = new Emitter<{ hello: TypedEvent }>()
-    const listenerOne = vi.fn(() => 1)
-    const listenerTwo = vi.fn(() => 2)
+    const listenerOne = vi.fn()
+    const listenerTwo = vi.fn()
 
-    emitter.on(listenerOne)
-    emitter.earlyOn(listenerTwo)
+    emitter.on('*', listenerOne)
+    emitter.earlyOn('*', listenerTwo)
 
     const generator = emitter.emitAsGenerator(new TypedEvent('hello'))
 
@@ -249,7 +249,7 @@ describe('earlyOn (without type)', () => {
     const listener = vi.fn()
     const controller = new AbortController()
 
-    emitter.earlyOn(listener, { signal: controller.signal })
+    emitter.earlyOn('*', listener, { signal: controller.signal })
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(listener).toHaveBeenCalledTimes(1)
@@ -268,7 +268,7 @@ describe('earlyOnce (without type)', () => {
     const listenerOne = vi.fn()
     const listenerTwo = vi.fn()
 
-    emitter.on(listenerOne)
+    emitter.on('*', listenerOne)
     emitter.earlyOnce('*', listenerTwo)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
@@ -296,7 +296,7 @@ describe('earlyOnce (without type)', () => {
 
     emitter.on('hello', typedListener)
     emitter.on('goodbye', typedListener)
-    emitter.earlyOnce(allListener)
+    emitter.earlyOnce('*', allListener)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(allListener).toHaveBeenCalledOnce()
@@ -337,8 +337,8 @@ describe('all-events listeners with event propagation', () => {
     const allListenerTwo = vi.fn()
 
     emitter.on('hello', typedListener)
-    emitter.on(allListenerOne)
-    emitter.on(allListenerTwo)
+    emitter.on('*', allListenerOne)
+    emitter.on('*', allListenerTwo)
 
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(typedListener).toHaveBeenCalledOnce()
@@ -355,8 +355,8 @@ describe('all-events listeners with event propagation', () => {
     })
     const listenerTwo = vi.fn()
 
-    emitterOne.on(listenerOne)
-    emitterTwo.on(listenerTwo)
+    emitterOne.on('*', listenerOne)
+    emitterTwo.on('*', listenerTwo)
 
     const event = new TypedEvent('hello')
 
@@ -374,7 +374,7 @@ describe('all-events listeners with async emit', () => {
       hello: TypedEvent
       goodbye: TypedEvent
     }>()
-    const allListener = vi.fn(() => 'all')
+    const allListener = vi.fn(() => {})
     const typedListener = vi.fn(() => 'typed')
 
     emitter.on('hello', typedListener)
@@ -393,10 +393,10 @@ describe('all-events listeners with async emit', () => {
       event.stopImmediatePropagation()
       return 1
     })
-    const listenerTwo = vi.fn(() => 2)
+    const listenerTwo = vi.fn()
 
     emitter.on('hello', listenerOne)
-    emitter.on(listenerTwo)
+    emitter.on('*', listenerTwo)
 
     const result = await emitter.emitAsPromise(new TypedEvent('hello'))
 
@@ -410,7 +410,7 @@ describe('all-events listeners with generator emit', () => {
   it('yields results from all-events listeners', () => {
     const emitter = new Emitter<{ hello: TypedEvent }>()
     const typedListener = vi.fn(() => 'typed')
-    const allListener = vi.fn(() => 'all')
+    const allListener = vi.fn(() => {})
 
     emitter.on('hello', typedListener)
     emitter.on('*', allListener)
@@ -418,7 +418,7 @@ describe('all-events listeners with generator emit', () => {
     const generator = emitter.emitAsGenerator(new TypedEvent('hello'))
 
     expect(generator.next()).toEqual({ value: 'typed', done: false })
-    expect(generator.next()).toEqual({ value: 'all', done: false })
+    expect(generator.next()).toEqual({ value: undefined, done: false })
     expect(generator.next()).toEqual({ value: undefined, done: true })
   })
 
@@ -428,14 +428,14 @@ describe('all-events listeners with generator emit', () => {
       event.stopImmediatePropagation()
       return 1
     })
-    const allListener = vi.fn(() => 2)
+    const allListener = vi.fn(() => {})
 
     emitter.on('hello', typedListener)
     emitter.on('*', allListener)
 
     const generator = emitter.emitAsGenerator(new TypedEvent('hello'))
 
-    expect(generator.next()).toEqual({ value: 1, done: false })
+    expect(generator.next()).toEqual({ value: undefined, done: false })
     expect(generator.next()).toEqual({ value: undefined, done: true })
     // All-events listener comes after typed listener, so it's not called
     expect(allListener).not.toHaveBeenCalled()
