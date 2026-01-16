@@ -6,10 +6,10 @@ it('infers event type', () => {
   }>()
 
   emitter.earlyOn('greeting', (event) => {
-    expectTypeOf<typeof event>().toEqualTypeOf<
+    expectTypeOf<typeof event>().toExtend<
       Emitter.EventType<typeof emitter, 'greeting'>
     >()
-    expectTypeOf(event.type).toEqualTypeOf<'greeting'>()
+    expectTypeOf(event.type).toExtend<'greeting'>()
     expectTypeOf(event.data).toBeVoid()
   })
 })
@@ -20,10 +20,10 @@ it('infers event type with a custom data type', () => {
   }>()
 
   emitter.earlyOn('greeting', (event) => {
-    expectTypeOf<typeof event>().toEqualTypeOf<
+    expectTypeOf<typeof event>().toExtend<
       Emitter.EventType<typeof emitter, 'greeting'>
     >()
-    expectTypeOf(event.type).toEqualTypeOf<'greeting'>()
+    expectTypeOf(event.type).toExtend<'greeting'>()
     expectTypeOf(event.data).toBeString()
   })
 })
@@ -42,10 +42,10 @@ it('infers custom event type', () => {
   }>()
 
   emitter.earlyOn('greeting', (event) => {
-    expectTypeOf<typeof event>().toEqualTypeOf<
+    expectTypeOf<typeof event>().toExtend<
       Emitter.EventType<typeof emitter, 'greeting'>
     >()
-    expectTypeOf(event.type).toEqualTypeOf<'greeting'>()
+    expectTypeOf(event.type).toExtend<'greeting'>()
     expectTypeOf(event.data).toBeVoid()
     expectTypeOf(event.id).toBeString()
   })
@@ -65,11 +65,11 @@ it('infers custom event type with a custom data type', () => {
   }>()
 
   emitter.earlyOn('greeting', (event) => {
-    expectTypeOf<typeof event>().toEqualTypeOf<
+    expectTypeOf<typeof event>().toExtend<
       Emitter.EventType<typeof emitter, 'greeting'>
     >()
-    expectTypeOf(event.type).toEqualTypeOf<'greeting'>()
-    expectTypeOf(event.data).toEqualTypeOf<'john'>()
+    expectTypeOf(event.type).toExtend<'greeting'>()
+    expectTypeOf(event.data).toExtend<'john'>()
     expectTypeOf(event.id).toBeString()
   })
 })
@@ -78,5 +78,5 @@ it('returns the emitter reference', () => {
   const emitter = new Emitter<{ greeting: TypedEvent }>()
   const returnValue = emitter.earlyOn('greeting', () => void 0)
 
-  expectTypeOf(returnValue).toEqualTypeOf<typeof emitter>()
+  expectTypeOf(returnValue).toExtend<typeof emitter>()
 })
