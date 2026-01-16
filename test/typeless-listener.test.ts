@@ -9,10 +9,10 @@ describe('on (without type)', () => {
     const listener = vi.fn()
     emitter.on('*', listener)
 
-    expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
+    expect(emitter.emit(new TypedEvent('hello'))).toBe(false)
     expect(listener).toHaveBeenCalledTimes(1)
 
-    expect(emitter.emit(new TypedEvent('goodbye'))).toBe(true)
+    expect(emitter.emit(new TypedEvent('goodbye'))).toBe(false)
     expect(listener).toHaveBeenCalledTimes(2)
   })
 
@@ -51,11 +51,11 @@ describe('on (without type)', () => {
     emitter.on('*', listenerOne)
     emitter.on('*', listenerTwo)
 
-    expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
+    expect(emitter.emit(new TypedEvent('hello'))).toBe(false)
     expect(listenerOne).toHaveBeenCalledTimes(1)
     expect(listenerTwo).toHaveBeenCalledTimes(1)
 
-    expect(emitter.emit(new TypedEvent('goodbye'))).toBe(true)
+    expect(emitter.emit(new TypedEvent('goodbye'))).toBe(false)
     expect(listenerOne).toHaveBeenCalledTimes(2)
     expect(listenerTwo).toHaveBeenCalledTimes(2)
   })
@@ -71,9 +71,7 @@ describe('on (without type)', () => {
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(typedListener).toHaveBeenCalledOnce()
     expect(allListener).toHaveBeenCalledOnce()
-    expect(typedListener.mock.invocationCallOrder[0]).toBeLessThan(
-      allListener.mock.invocationCallOrder[0],
-    )
+    expect(typedListener).toHaveBeenCalledBefore(allListener)
   })
 
   it('receives events with data', () => {
@@ -82,7 +80,7 @@ describe('on (without type)', () => {
     emitter.on('*', listener)
 
     const event = new TypedEvent('hello', { data: 'world' })
-    expect(emitter.emit(event)).toBe(true)
+    expect(emitter.emit(event)).toBe(false)
     expect(listener).toHaveBeenCalledWith(event)
     expect(listener.mock.calls[0][0].data).toBe('world')
   })
@@ -94,7 +92,7 @@ describe('on (without type)', () => {
 
     emitter.on('*', listener, { signal: controller.signal })
 
-    expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
+    expect(emitter.emit(new TypedEvent('hello'))).toBe(false)
     expect(listener).toHaveBeenCalledTimes(1)
 
     controller.abort()
@@ -114,7 +112,7 @@ describe('once (without type)', () => {
     const listener = vi.fn()
     emitter.once('*', listener)
 
-    expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
+    expect(emitter.emit(new TypedEvent('hello'))).toBe(false)
     expect(listener).toHaveBeenCalledTimes(1)
 
     listener.mockReset()
@@ -127,7 +125,7 @@ describe('once (without type)', () => {
     const listener = vi.fn()
     emitter.once('*', listener)
 
-    expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
+    expect(emitter.emit(new TypedEvent('hello'))).toBe(false)
     expect(listener).toHaveBeenCalledTimes(1)
 
     listener.mockReset()
@@ -177,12 +175,10 @@ describe('earlyOn (without type)', () => {
     emitter.on('*', listenerOne)
     emitter.earlyOn('*', listenerTwo)
 
-    expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
+    expect(emitter.emit(new TypedEvent('hello'))).toBe(false)
     expect(listenerTwo).toHaveBeenCalledOnce()
     expect(listenerOne).toHaveBeenCalledOnce()
-    expect(listenerTwo.mock.invocationCallOrder[0]).toBeLessThan(
-      listenerOne.mock.invocationCallOrder[0],
-    )
+    expect(listenerTwo).toHaveBeenCalledBefore(listenerOne)
   })
 
   it('prepends the only all-events listener', () => {
@@ -190,11 +186,11 @@ describe('earlyOn (without type)', () => {
     const listener = vi.fn()
     emitter.earlyOn('*', listener)
 
-    expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
+    expect(emitter.emit(new TypedEvent('hello'))).toBe(false)
     expect(listener).toHaveBeenCalledOnce()
   })
 
-  it('calls early all-events listener after typed listeners', () => {
+  it('calls early all-events listener before typed listeners', () => {
     const emitter = new Emitter<{ hello: TypedEvent }>()
     const allListener = vi.fn()
     const typedListener = vi.fn()
@@ -205,10 +201,7 @@ describe('earlyOn (without type)', () => {
     expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
     expect(allListener).toHaveBeenCalledOnce()
     expect(typedListener).toHaveBeenCalledOnce()
-    // Typed listeners are always called before all-events listeners
-    expect(typedListener.mock.invocationCallOrder[0]).toBeLessThan(
-      allListener.mock.invocationCallOrder[0],
-    )
+    expect(allListener).toHaveBeenCalledBefore(typedListener)
   })
 
   it('prepends a listener for async emit', async () => {
@@ -221,15 +214,13 @@ describe('earlyOn (without type)', () => {
 
     const result = await emitter.emitAsPromise(new TypedEvent('hello'))
 
-    expect(result).toEqual([2, 1])
-    expect(listenerTwo).toHaveBeenCalledOnce()
-    expect(listenerOne).toHaveBeenCalledOnce()
-    expect(listenerTwo.mock.invocationCallOrder[0]).toBeLessThan(
-      listenerOne.mock.invocationCallOrder[0],
-    )
+    expect.soft(result).toEqual([])
+    expect.soft(listenerTwo).toHaveBeenCalledOnce()
+    expect.soft(listenerOne).toHaveBeenCalledOnce()
+    expect(listenerTwo).toHaveBeenCalledBefore(listenerOne)
   })
 
-  it('prepends a listener for generator emit', () => {
+  it('does not yield a return value', () => {
     const emitter = new Emitter<{ hello: TypedEvent }>()
     const listenerOne = vi.fn()
     const listenerTwo = vi.fn()
@@ -238,9 +229,6 @@ describe('earlyOn (without type)', () => {
     emitter.earlyOn('*', listenerTwo)
 
     const generator = emitter.emitAsGenerator(new TypedEvent('hello'))
-
-    expect(generator.next()).toEqual({ value: 2, done: false })
-    expect(generator.next()).toEqual({ value: 1, done: false })
     expect(generator.next()).toEqual({ value: undefined, done: true })
   })
 
@@ -251,7 +239,7 @@ describe('earlyOn (without type)', () => {
 
     emitter.earlyOn('*', listener, { signal: controller.signal })
 
-    expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
+    expect(emitter.emit(new TypedEvent('hello'))).toBe(false)
     expect(listener).toHaveBeenCalledTimes(1)
 
     controller.abort()
@@ -271,17 +259,15 @@ describe('earlyOnce (without type)', () => {
     emitter.on('*', listenerOne)
     emitter.earlyOnce('*', listenerTwo)
 
-    expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
+    expect(emitter.emit(new TypedEvent('hello'))).toBe(false)
     expect(listenerTwo).toHaveBeenCalledOnce()
     expect(listenerOne).toHaveBeenCalledOnce()
-    expect(listenerTwo.mock.invocationCallOrder[0]).toBeLessThan(
-      listenerOne.mock.invocationCallOrder[0],
-    )
+    expect(listenerTwo).toHaveBeenCalledBefore(listenerOne)
 
     listenerOne.mockClear()
     listenerTwo.mockClear()
 
-    expect(emitter.emit(new TypedEvent('hello'))).toBe(true)
+    expect(emitter.emit(new TypedEvent('hello'))).toBe(false)
     expect(listenerOne).toHaveBeenCalledOnce()
     expect(listenerTwo).not.toHaveBeenCalled()
   })
@@ -291,8 +277,8 @@ describe('earlyOnce (without type)', () => {
       hello: TypedEvent
       goodbye: TypedEvent
     }>()
-    const allListener = vi.fn()
-    const typedListener = vi.fn()
+    const allListener = vi.fn(function allListener() {})
+    const typedListener = vi.fn(function typedListener() {})
 
     emitter.on('hello', typedListener)
     emitter.on('goodbye', typedListener)
@@ -302,9 +288,7 @@ describe('earlyOnce (without type)', () => {
     expect(allListener).toHaveBeenCalledOnce()
     expect(typedListener).toHaveBeenCalledOnce()
     // Typed listeners are always called before all-events listeners
-    expect(typedListener.mock.invocationCallOrder[0]).toBeLessThan(
-      allListener.mock.invocationCallOrder[0],
-    )
+    expect(allListener).toHaveBeenCalledBefore(typedListener)
 
     allListener.mockClear()
     typedListener.mockClear()
@@ -360,7 +344,7 @@ describe('all-events listeners with event propagation', () => {
 
     const event = new TypedEvent('hello')
 
-    expect(emitterOne.emit(event)).toBe(true)
+    expect(emitterOne.emit(event)).toBe(false)
     expect(emitterTwo.emit(event)).toBe(false)
 
     expect(listenerOne).toHaveBeenCalledOnce()
@@ -382,7 +366,7 @@ describe('all-events listeners with async emit', () => {
 
     const result = await emitter.emitAsPromise(new TypedEvent('hello'))
 
-    expect(result).toEqual(['typed', 'all'])
+    expect(result).toEqual(['typed'])
     expect(allListener).toHaveBeenCalledOnce()
     expect(typedListener).toHaveBeenCalledOnce()
   })
@@ -418,7 +402,6 @@ describe('all-events listeners with generator emit', () => {
     const generator = emitter.emitAsGenerator(new TypedEvent('hello'))
 
     expect(generator.next()).toEqual({ value: 'typed', done: false })
-    expect(generator.next()).toEqual({ value: undefined, done: false })
     expect(generator.next()).toEqual({ value: undefined, done: true })
   })
 
@@ -435,7 +418,7 @@ describe('all-events listeners with generator emit', () => {
 
     const generator = emitter.emitAsGenerator(new TypedEvent('hello'))
 
-    expect(generator.next()).toEqual({ value: undefined, done: false })
+    expect(generator.next()).toEqual({ value: 1, done: false })
     expect(generator.next()).toEqual({ value: undefined, done: true })
     // All-events listener comes after typed listener, so it's not called
     expect(allListener).not.toHaveBeenCalled()

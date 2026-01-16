@@ -116,15 +116,6 @@ type AllEvents<EventMap extends DefaultEventMap> = {
   [K in keyof EventMap & string]: Brand<EventMap[K], K>
 }[keyof EventMap & string]
 
-type InternalListenersMap<
-  Target extends Emitter<any>,
-  EventMap extends DefaultEventMap = InferEventMap<Target>,
-> = Partial<{
-  [K in keyof MergedEventMap<EventMap>]: Array<
-    Emitter.ListenerType<Target, K & string, MergedEventMap<EventMap>>
-  >
-}>
-
 export type TypedListenerOptions = {
   once?: boolean
   signal?: AbortSignal
@@ -200,10 +191,16 @@ export namespace Emitter {
 }
 
 export class Emitter<EventMap extends DefaultEventMap> {
-  #listeners: InternalListenersMap<typeof this, EventMap>
+  #listeners: LensList<
+    Emitter.ListenerType<
+      typeof this,
+      keyof MergedEventMap<EventMap> & string,
+      MergedEventMap<EventMap>
+    >
+  >
 
   constructor() {
-    this.#listeners = {} as InternalListenersMap<typeof this, EventMap>
+    this.#listeners = new LensList()
   }
 
   /**
@@ -218,7 +215,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
     >,
     options?: TypedListenerOptions,
   ): typeof this {
-    return this.#addListener(type, listener, options)
+    this.#addListener(type, listener, options)
+    return this
   }
 
   /**
@@ -251,7 +249,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
     >,
     options?: TypedListenerOptions,
   ): typeof this {
-    return this.#addListener(type, listener, options, 'prepend')
+    this.#addListener(type, listener, options, 'prepend')
+    return this
   }
 
   /**
@@ -280,15 +279,19 @@ export class Emitter<EventMap extends DefaultEventMap> {
   public emit<EventType extends keyof EventMap & string>(
     event: Brand<EventMap[EventType], EventType, true>,
   ): boolean {
-    const listeners = this.#getAllListeners(event.type)
-
-    if (listeners.length === 0) {
+    if (this.#listeners.size === 0) {
       return false
     }
 
+    /**
+     * @note Calculate matching listeners before calling them
+     * since one-time listeners will self-destruct.
+     */
+    const hasListeners = this.listenerCount(event.type) > 0
+
     const proxiedEvent = this.#proxyEvent(event)
 
-    for (const listener of listeners) {
+    for (const listener of this.#matchListeners(event.type)) {
       if (
         proxiedEvent.event[kPropagationStopped] != null &&
         proxiedEvent.event[kPropagationStopped] !== this
@@ -301,12 +304,12 @@ export class Emitter<EventMap extends DefaultEventMap> {
         break
       }
 
-      this.#callListener(proxiedEvent.event, listener, event.type)
+      this.#callListener(proxiedEvent.event, listener)
     }
 
     proxiedEvent.revoke()
 
-    return true
+    return hasListeners
   }
 
   /**
@@ -321,9 +324,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
   ): Promise<
     Array<Emitter.ListenerReturnType<typeof this, EventType, EventMap>>
   > {
-    const listeners = this.#getAllListeners(event.type)
-
-    if (listeners.length === 0) {
+    if (this.#listeners.size === 0) {
       return []
     }
 
@@ -333,7 +334,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
     const proxiedEvent = this.#proxyEvent(event)
 
-    for (const listener of listeners) {
+    for (const listener of this.#matchListeners(event.type)) {
       if (
         proxiedEvent.event[kPropagationStopped] != null &&
         proxiedEvent.event[kPropagationStopped] !== this
@@ -346,11 +347,15 @@ export class Emitter<EventMap extends DefaultEventMap> {
         break
       }
 
-      pendingListeners.push(
-        await Promise.resolve(
-          this.#callListener(proxiedEvent.event, listener, event.type),
-        ),
+      const listenerPromise = Promise.resolve(
+        this.#callListener(proxiedEvent.event, listener),
       )
+
+      const returnValue = await listenerPromise
+
+      if (!this.#isTypelessListener(listener)) {
+        pendingListeners.push(returnValue)
+      }
     }
 
     proxiedEvent.revoke()
@@ -370,15 +375,13 @@ export class Emitter<EventMap extends DefaultEventMap> {
   public *emitAsGenerator<EventType extends keyof EventMap & string>(
     event: Brand<EventMap[EventType], EventType, true>,
   ): Generator<Emitter.ListenerReturnType<typeof this, EventType, EventMap>> {
-    const listeners = this.#getAllListeners(event.type)
-
-    if (listeners.length === 0) {
+    if (this.#listeners.size === 0) {
       return
     }
 
     const proxiedEvent = this.#proxyEvent(event)
 
-    for (const listener of listeners) {
+    for (const listener of this.#matchListeners(event.type)) {
       if (
         proxiedEvent.event[kPropagationStopped] != null &&
         proxiedEvent.event[kPropagationStopped] !== this
@@ -391,7 +394,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
         break
       }
 
-      yield this.#callListener(proxiedEvent.event, listener, event.type)
+      const returnValue = this.#callListener(proxiedEvent.event, listener)
+
+      if (!this.#isTypelessListener(listener)) {
+        yield returnValue
+      }
     }
 
     proxiedEvent.revoke()
@@ -410,21 +417,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
       MergedEventMap<EventMap>
     >,
   ): void {
-    if (!this.#listeners[type] || this.#listeners[type]!.length === 0) {
-      return
-    }
-
-    const nextListeners: Array<
-      Emitter.ListenerType<typeof this, EventType, MergedEventMap<EventMap>>
-    > = []
-
-    for (const existingListener of this.#listeners[type]!) {
-      if (existingListener !== listener) {
-        nextListeners.push(existingListener)
-      }
-    }
-
-    this.#listeners[type] = nextListeners
+    this.#listeners.delete(type, listener)
   }
 
   /**
@@ -435,11 +428,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
     EventType extends keyof MergedEventMap<EventMap> & string,
   >(type?: EventType): void {
     if (type == null) {
-      this.#listeners = {}
+      this.#listeners.clear()
       return
     }
 
-    this.#listeners[type] = []
+    this.#listeners.deleteAll(type)
   }
 
   /**
@@ -452,16 +445,10 @@ export class Emitter<EventMap extends DefaultEventMap> {
     Emitter.ListenerType<typeof this, EventType, MergedEventMap<EventMap>>
   > {
     if (type == null) {
-      // Return ALL listeners: typeless + all explicit listeners
-      return Object.values(this.#listeners).flat() as Array<
-        Emitter.ListenerType<typeof this, EventType, MergedEventMap<EventMap>>
-      >
+      return this.#listeners.getAll()
     }
 
-    // Return ONLY explicit listeners for the given type
-    return (this.#listeners[type] || []) as Array<
-      Emitter.ListenerType<typeof this, EventType, MergedEventMap<EventMap>>
-    >
+    return this.#listeners.get(type)
   }
 
   /**
@@ -471,6 +458,10 @@ export class Emitter<EventMap extends DefaultEventMap> {
   public listenerCount<
     EventType extends keyof MergedEventMap<EventMap> & string,
   >(type?: EventType): number {
+    if (type == null) {
+      return this.#listeners.size
+    }
+
     return this.listeners(type).length
   }
 
@@ -483,13 +474,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
     >,
     options: TypedListenerOptions | undefined,
     insertMode: 'append' | 'prepend' = 'append',
-  ): typeof this {
-    this.#listeners[type] ??= []
-
+  ): void {
     if (insertMode === 'prepend') {
-      this.#listeners[type].unshift(listener)
+      this.#listeners.prepend(type, listener)
     } else {
-      this.#listeners[type].push(listener)
+      this.#listeners.append(type, listener)
     }
 
     if (options) {
@@ -509,8 +498,6 @@ export class Emitter<EventMap extends DefaultEventMap> {
         )
       }
     }
-
-    return this
   }
 
   #proxyEvent<Event extends TypedEvent>(
@@ -538,20 +525,130 @@ export class Emitter<EventMap extends DefaultEventMap> {
     listener: ((event: any) => any) & {
       [kListenerOptions]?: TypedListenerOptions
     },
-    listenerType: string,
   ) {
     const returnValue = listener.call(this, event)
 
     if (listener[kListenerOptions]?.once) {
-      this.removeListener(listenerType, listener)
+      const key = this.#isTypelessListener(listener) ? '*' : event.type
+      this.#listeners.delete(key, listener)
     }
 
     return returnValue
   }
 
-  #getAllListeners<EventType extends keyof EventMap & string>(type: EventType) {
-    const typelessListeners = this.#listeners['*'] || []
-    const typeListeners = this.#listeners[type] || []
-    return [...typelessListeners, ...typeListeners]
+  /**
+   * Return a list of all event listeners relevant for the given event type.
+   * This includes the explicit event listeners and also typeless event listeners.
+   */
+  *#matchListeners<EventType extends keyof EventMap & string>(type: EventType) {
+    for (const [key, listener] of this.#listeners) {
+      if (key === '*' || key === type) {
+        yield listener
+      }
+    }
+  }
+
+  #isTypelessListener(listener: any): boolean {
+    return this.#listeners.get('*').includes(listener)
+  }
+}
+
+class LensList<T> {
+  #list: Array<[string, T]>
+  #lens: Map<string, Array<T>>
+
+  constructor() {
+    this.#list = []
+    this.#lens = new Map()
+  }
+
+  get [Symbol.iterator]() {
+    // Return the list's iterator so iteration is order-sensitive.
+    return this.#list[Symbol.iterator].bind(this.#list)
+  }
+
+  public entries() {
+    return this.#lens.entries()
+  }
+
+  /**
+   * Return an order-sensitive list of values by the given key.
+   */
+  public get(key: string): Array<T> {
+    return this.#lens.get(key) || []
+  }
+
+  /**
+   * Return an order-sensitive list of all values.
+   */
+  public getAll(): Array<T> {
+    return this.#list.map(([, value]) => value)
+  }
+
+  /**
+   * Append a new value to the given key.
+   */
+  public append(key: string, value: T): void {
+    this.#list.push([key, value])
+    this.#openLens(key, (list) => list.push(value))
+  }
+
+  /**
+   * Prepend a new value to the given key.
+   */
+  public prepend(key: string, value: T): void {
+    this.#list.unshift([key, value])
+
+    /**
+     * @note Lens' list is order-insensitive and is meant
+     * for quicker calculation of the values by key.
+     */
+    this.#openLens(key, (list) => list.push(value))
+  }
+
+  /**
+   * Delete the value belonging to the given key.
+   */
+  public delete(key: string, value: T): void {
+    if (this.size === 0) {
+      return
+    }
+
+    this.#list = this.#list.filter((item) => item[1] !== value)
+
+    for (const [existingKey, values] of this.#lens) {
+      if (existingKey === key && values.includes(value)) {
+        values.splice(values.indexOf(value), 1)
+      }
+    }
+  }
+
+  /**
+   * Delete all values belogning to the given key.
+   */
+  public deleteAll(key: string): void {
+    if (this.size === 0) {
+      return
+    }
+
+    this.#list = this.#list.filter((item) => item[0] !== key)
+    this.#lens.delete(key)
+  }
+
+  get size(): number {
+    return this.#list.length
+  }
+
+  public clear(): void {
+    if (this.size === 0) {
+      return
+    }
+
+    this.#list.length = 0
+    this.#lens.clear()
+  }
+
+  #openLens(key: string, setter: (target: Array<T>) => void): void {
+    setter(this.#lens.get(key) || this.#lens.set(key, []).get(key))
   }
 }
