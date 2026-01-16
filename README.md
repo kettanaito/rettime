@@ -51,6 +51,37 @@ new TypedEvent<DataType, ReturnType, EventType>(type: EventType, { data: DataTyp
 
 > The `data` argument depends on the `DataType` of your event. Use `void` if the event must not send any data.
 
+
+#### Reserved events
+
+_Reserved events_ refer to event types reserved for specific behaviors by the library.
+
+#### `*`
+
+Using a wildcard (`*`) event type allows you to listen to _any_ events emitted on the emitter. This is similar to methods like `.onAny()` you might find in the wild.
+
+```ts
+const emitter = new Emitter<{
+  greeting: TypedEvent<string>()
+  cart: TypedEvent<CartItem[]>()
+}>()
+
+emitter
+  .on('*', (event) => {
+    event.type // "greeting" | "cart"
+    console.log(`Caught: ${event.type}, ${event.data}`)
+  })
+  .on('greeting', (event) => {
+    console.log(`Hello, ${event.data}!`)
+  })
+
+emitter.emit('greeting', 'John')
+// "Caught: greeting, John"
+// "Hello, John!"
+````
+
+Wildcard listeners are supported by all subscription methods, like `.on()`, `.once()`, `.earlyOn()`, and .`earlyOnce()`, are type-safe and fully support the listener order sensitivity.
+
 #### Custom events
 
 You can implement custom events by extending the default `TypedEvent` class and forwarding the type arguments that it expects:
@@ -76,23 +107,6 @@ emitter.on('greeting', (event) => {
   console.log(event.id) // string
 })
 ```
-
-#### Typeless events
-
-You can listen to any event on the emitter by attaching a _typeless listener_. This implements the same behavior as the `.asAny()` method you might've used with other emitter libraries.
-
-```ts
-const emitter = new Emitter<{
-  greeting: TypedEvent<string>()
-  cart: TypedEvent<CartItem[]>()
-}>()
-
-emitter.on((event) => {
-  console.log(event.data) // string | CartItem[]
-})
-````
-
-Typeless listeners are supported by all subscription methods, like `.on()`, `.once()`, `.earlyOn()`, and .`earlyOnce()`. Despite its name, typeless events are perfectly type-safe and preserve all the type inference otherwise present in this library.
 
 ### `Emitter`
 
