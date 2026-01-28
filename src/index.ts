@@ -8,7 +8,7 @@ export type DefaultEventMap = {
  * Reserved event map containing special event types like '*' for catch-all listeners.
  */
 export type ReservedEventMap = {
-  '*': TypedEvent<any, any>
+  '*': TypedEvent<any, any, '*'>
 }
 
 type IsReservedEvent<Type extends string> = Type extends keyof ReservedEventMap
@@ -28,10 +28,10 @@ const kPropagationStopped = Symbol('kPropagationStopped')
 const kImmediatePropagationStopped = Symbol('kImmediatePropagationStopped')
 
 export class TypedEvent<
-    DataType = void,
-    ReturnType = void,
-    EventType extends string = string,
-  >
+  DataType = void,
+  ReturnType = void,
+  EventType extends string = string,
+>
   extends MessageEvent<DataType>
   implements TypedEvent<DataType, ReturnType, EventType>
 {
@@ -94,7 +94,7 @@ type Brand<
   : Event & { type: EventType }
 
 type InferEventMap<Target extends Emitter<any>> =
-  Target extends Emitter<infer EventMap> ? EventMap : never
+  Target extends Emitter<infer EventMap> ? MergedEventMap<EventMap> : never
 
 /**
  * Extracts only user-defined events, excluding reserved event types.
