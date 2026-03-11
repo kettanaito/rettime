@@ -126,7 +126,7 @@ const kListenerOptions = Symbol('kListenerOptions')
 
 export namespace Emitter {
   /**
-   * Returns a union of all user-defined event types from the given emitter.
+   * Returns a union of all public event types from the given emitter.
    *
    * @example
    * const emitter = new Emitter<{ greeting: TypedEvent, handshake: TypedEvent }>()
@@ -138,6 +138,21 @@ export namespace Emitter {
     EventMap extends DefaultEventMap = InferEventMap<Target>,
     UserEvents extends UserEventMap<EventMap> = UserEventMap<EventMap>,
   > = string extends keyof UserEvents ? never : keyof UserEvents & string
+
+  /**
+   * Returns a union of all public event type from the given emitter.
+   *
+   * @example
+   * const emitter = new Emitter<{ greeting: GreetingEvent, handshake: HandshakeEvent }>()
+   * type Events = Emitter.Events<typeof emitter>
+   * // GreetingEvent | HandshakeEvent
+   */
+  export type Events<
+    Target extends Emitter<any>,
+    EventMap extends DefaultEventMap = InferEventMap<Target>,
+  > = string extends keyof UserEventMap<EventMap>
+    ? never
+    : UserEventMap<EventMap>[keyof UserEventMap<EventMap>]
 
   /**
    * Returns an appropriate `Event` type for the given event type.

@@ -3,9 +3,6 @@ import { Emitter, TypedEvent } from '#src/index'
 it('returns never for an emitter without any events', () => {
   {
     const emitter = new Emitter()
-
-    type Xoo = Emitter.EventTypes<typeof emitter>
-
     expectTypeOf<Emitter.EventTypes<typeof emitter>>().toBeNever()
   }
 
