@@ -77,3 +77,34 @@ it('infers listener type of a custom event with explicit return type', () => {
     (event: GreetingEvent<string, number> & { type: 'greeting' }) => number
   >()
 })
+
+it('returns the wildcard listener type for "*" for an emitter with a single event', () => {
+  class GreetingEvent<
+    I,
+    O = unknown,
+    T extends string = string,
+  > extends TypedEvent<I, O, T> {}
+
+  const emitter = new Emitter<{ greeting: GreetingEvent<string, number> }>()
+
+  expectTypeOf<Emitter.Listener<typeof emitter, '*'>>().toEqualTypeOf<
+    (event: Emitter.Event<typeof emitter, '*'>) => void
+  >()
+})
+
+it('returns the wildcard listener type for "*" for an emitter with many events', () => {
+  class GreetingEvent<
+    I,
+    O = unknown,
+    T extends string = string,
+  > extends TypedEvent<I, O, T> {}
+
+  const emitter = new Emitter<{
+    greeting: GreetingEvent<string, number>
+    handshake: TypedEvent<'hello', void>
+  }>()
+
+  expectTypeOf<Emitter.Listener<typeof emitter, '*'>>().toEqualTypeOf<
+    (event: Emitter.Event<typeof emitter, '*'>) => void
+  >()
+})

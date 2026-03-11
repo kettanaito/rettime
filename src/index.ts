@@ -211,7 +211,9 @@ export namespace Emitter {
     EventMap extends DefaultEventMap = InferEventMap<Target>,
   > =
     IsReservedEvent<EventType> extends true
-      ? (event: AllEvents<UserEventMap<EventMap>>) => void
+      ? (
+          event: Emitter.Event<Target, EventType, EventMap>,
+        ) => void
       : (
           event: Emitter.Event<Target, EventType, EventMap>,
         ) => Emitter.ListenerReturnType<Target, EventType, EventMap> extends [
@@ -314,6 +316,7 @@ export namespace EventMap {
     Type extends keyof WithReservedEvents<Map> & string,
   > = Emitter.ListenerReturnType<Emitter<Map>, Type, WithReservedEvents<Map>>
 }
+
 
 export class Emitter<EventMap extends DefaultEventMap> {
   #listeners: LensList<
