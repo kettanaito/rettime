@@ -304,7 +304,32 @@ Removes all event listeners for the given event type. If no event `type` is prov
 
 This library also comes with a set of helper types to make your life easier.
 
-### `Emitter.EventType`
+
+### `Emitter.EventTypes`
+
+Returns a union of all public event types for the given emitter.
+
+```ts
+const emitter = new Emitter<{ greeting: TypedEvent, handshake: TypedEvent }>()
+
+type Events = Emitter.EventTypes<typeof emitter>
+// "greeting" | "handshake"
+```
+
+### `Emitter.Events`
+
+Returns a union of all public events for the given emitter.
+
+```ts
+class GreetingEvent extends TypedEvent {}
+
+const emitter = new Emitter<{ greeting: GreetingEvent, handshake: TypedEvent }>()
+
+type Events = Emitter.Events<typeof emitter>
+// GreetingEvent | TypedEvent
+```
+
+### `Emitter.Event`
 
 Returns the `Event` type (or its subtype) representing the given listener.
 
@@ -312,11 +337,11 @@ Returns the `Event` type (or its subtype) representing the given listener.
 import { Emitter, TypedEvent } from 'rettime'
 
 const emitter = new Emitter<{ greeting: TypedEvent<'john'> }>()
-type GreetingEvent = Emitter.EventType<typeof emitter, 'greeting'>
+type GreetingEvent = Emitter.Event<typeof emitter, 'greeting'>
 // TypedEvent<'john'>
 ```
 
-### `Emitter.ListenerType`
+### `Emitter.Listener`
 
 Returns the type of the given event's listener.
 
@@ -324,11 +349,11 @@ Returns the type of the given event's listener.
 import { Emitter, TypedEvent } from 'rettime'
 
 const emitter = new Emitter<{ greeting: TypedEvent<string, number[]> }>()
-type GreetingListener = Emitter.ListenerType<typeof emitter, 'greeting'>
+type GreetingListener = Emitter.Listener<typeof emitter, 'greeting'>
 // (event: TypedEvent<string>) => number[]
 ```
 
-> The `ListenerType` helper is in itself type-safe, allowing only known event types as the second argument.
+> The `Listener` helper is in itself type-safe, allowing only known event types as the second argument.
 
 ### `Emitter.ListenerReturnType`
 
