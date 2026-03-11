@@ -16,7 +16,7 @@ it('supports custom events without any data', () => {
   const emitter = new Emitter<{ fetch: FetchEvent }>()
   expect(emitter.emit(new FetchEvent('fetch', { id: 1 }))).toBe(false)
 
-  const fetchListener = vi.fn<Emitter.ListenerType<typeof emitter, 'fetch'>>()
+  const fetchListener = vi.fn<Emitter.Listener<typeof emitter, 'fetch'>>()
   emitter.on('fetch', fetchListener)
 
   expect(emitter.emit(new FetchEvent('fetch', { id: 2 }))).toBe(true)

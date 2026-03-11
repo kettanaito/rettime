@@ -7,20 +7,20 @@ it('infers the event data type for an event without data', () => {
 
   emitter
     .on('*', (event) => {
-      expectTypeOf(event.type).toExtend<'hello'>()
-      expectTypeOf(event.data).toExtend<void>()
+      expectTypeOf(event.type).toEqualTypeOf<'hello'>()
+      expectTypeOf(event.data).toEqualTypeOf<void>()
     })
     .once('*', (event) => {
-      expectTypeOf(event.type).toExtend<'hello'>()
-      expectTypeOf(event.data).toExtend<void>()
+      expectTypeOf(event.type).toEqualTypeOf<'hello'>()
+      expectTypeOf(event.data).toEqualTypeOf<void>()
     })
     .earlyOn('*', (event) => {
-      expectTypeOf(event.type).toExtend<'hello'>()
-      expectTypeOf(event.data).toExtend<void>()
+      expectTypeOf(event.type).toEqualTypeOf<'hello'>()
+      expectTypeOf(event.data).toEqualTypeOf<void>()
     })
     .earlyOnce('*', (event) => {
-      expectTypeOf(event.type).toExtend<'hello'>()
-      expectTypeOf(event.data).toExtend<void>()
+      expectTypeOf(event.type).toEqualTypeOf<'hello'>()
+      expectTypeOf(event.data).toEqualTypeOf<void>()
     })
 })
 
@@ -31,20 +31,20 @@ it('infers the event data type for a single event', () => {
 
   emitter
     .on('*', (event) => {
-      expectTypeOf(event.type).toExtend<'hello'>()
-      expectTypeOf(event.data).toExtend<'world'>()
+      expectTypeOf(event.type).toEqualTypeOf<'hello'>()
+      expectTypeOf(event.data).toEqualTypeOf<'world'>()
     })
     .once('*', (event) => {
-      expectTypeOf(event.type).toExtend<'hello'>()
-      expectTypeOf(event.data).toExtend<'world'>()
+      expectTypeOf(event.type).toEqualTypeOf<'hello'>()
+      expectTypeOf(event.data).toEqualTypeOf<'world'>()
     })
     .earlyOn('*', (event) => {
-      expectTypeOf(event.type).toExtend<'hello'>()
-      expectTypeOf(event.data).toExtend<'world'>()
+      expectTypeOf(event.type).toEqualTypeOf<'hello'>()
+      expectTypeOf(event.data).toEqualTypeOf<'world'>()
     })
     .earlyOnce('*', (event) => {
-      expectTypeOf(event.type).toExtend<'hello'>()
-      expectTypeOf(event.data).toExtend<'world'>()
+      expectTypeOf(event.type).toEqualTypeOf<'hello'>()
+      expectTypeOf(event.data).toEqualTypeOf<'world'>()
     })
 })
 
@@ -57,20 +57,20 @@ it('infers the event data type for multiple events', () => {
 
   emitter
     .on('*', (event) => {
-      expectTypeOf(event.type).toExtend<'hello' | 'goodbye' | 'third'>()
-      expectTypeOf(event.data).toExtend<'world' | 'cosmos' | void>()
+      expectTypeOf(event.type).toEqualTypeOf<'hello' | 'goodbye' | 'third'>()
+      expectTypeOf(event.data).toEqualTypeOf<'world' | 'cosmos' | void>()
     })
     .once('*', (event) => {
-      expectTypeOf(event.type).toExtend<'hello' | 'goodbye' | 'third'>()
-      expectTypeOf(event.data).toExtend<'world' | 'cosmos' | void>()
+      expectTypeOf(event.type).toEqualTypeOf<'hello' | 'goodbye' | 'third'>()
+      expectTypeOf(event.data).toEqualTypeOf<'world' | 'cosmos' | void>()
     })
     .earlyOn('*', (event) => {
-      expectTypeOf(event.type).toExtend<'hello' | 'goodbye' | 'third'>()
-      expectTypeOf(event.data).toExtend<'world' | 'cosmos' | void>()
+      expectTypeOf(event.type).toEqualTypeOf<'hello' | 'goodbye' | 'third'>()
+      expectTypeOf(event.data).toEqualTypeOf<'world' | 'cosmos' | void>()
     })
     .earlyOnce('*', (event) => {
-      expectTypeOf(event.type).toExtend<'hello' | 'goodbye' | 'third'>()
-      expectTypeOf(event.data).toExtend<'world' | 'cosmos' | void>()
+      expectTypeOf(event.type).toEqualTypeOf<'hello' | 'goodbye' | 'third'>()
+      expectTypeOf(event.data).toEqualTypeOf<'world' | 'cosmos' | void>()
     })
 })
 
@@ -88,10 +88,15 @@ it('infers the event data type for custom events', () => {
   }>()
 
   emitter.on('*', (event) => {
-    expectTypeOf(event).toExtend<GreetingEvent | FarewellEvent>()
+    expectTypeOf(event).toEqualTypeOf<
+      | Emitter.Event<typeof emitter, 'greeting'>
+      | Emitter.Event<typeof emitter, 'farewell'>
+    >()
 
-    expectTypeOf('id' in event && event.id).toExtend<string>()
-    expectTypeOf('timestamp' in event && event.timestamp).toExtend<number>()
+    expectTypeOf('id' in event && event.id).toEqualTypeOf<string>()
+    expectTypeOf(
+      'timestamp' in event && event.timestamp,
+    ).toEqualTypeOf<number>()
   })
 })
 
@@ -101,10 +106,10 @@ it('infers the listener return type for a single event', () => {
   }>()
 
   emitter
-    .on('*', () => 'foo')
-    .once('*', () => 'foo')
-    .earlyOn('*', () => 'foo')
-    .earlyOnce('*', () => 'foo')
+    .on('*', () => 123)
+    .once('*', () => 123)
+    .earlyOn('*', () => 123)
+    .earlyOnce('*', () => 123)
 })
 
 it('infers the listener return type for multiple events', () => {

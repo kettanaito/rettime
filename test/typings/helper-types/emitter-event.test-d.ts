@@ -5,7 +5,7 @@ it('infers event type', () => {
     greeting: TypedEvent
   }>()
 
-  expectTypeOf<Emitter.EventType<typeof emitter, 'greeting'>>().toEqualTypeOf<
+  expectTypeOf<Emitter.Event<typeof emitter, 'greeting'>>().toEqualTypeOf<
     TypedEvent & { type: 'greeting' }
   >()
 })
@@ -15,7 +15,7 @@ it('infers the type of an event with explicit data type', () => {
     greeting: TypedEvent<string>
   }>()
 
-  expectTypeOf<Emitter.EventType<typeof emitter, 'greeting'>>().toEqualTypeOf<
+  expectTypeOf<Emitter.Event<typeof emitter, 'greeting'>>().toEqualTypeOf<
     TypedEvent<string> & { type: 'greeting' }
   >()
 })
@@ -25,7 +25,7 @@ it('infers the type of an event with explicit return type', () => {
     greeting: TypedEvent<string, number>
   }>()
 
-  expectTypeOf<Emitter.EventType<typeof emitter, 'greeting'>>().toEqualTypeOf<
+  expectTypeOf<Emitter.Event<typeof emitter, 'greeting'>>().toEqualTypeOf<
     TypedEvent<string, number> & { type: 'greeting' }
   >()
 })
@@ -41,7 +41,7 @@ it('infers type of a custom event', () => {
     greeting: GreetingEvent
   }>()
 
-  expectTypeOf<Emitter.EventType<typeof emitter, 'greeting'>>().toEqualTypeOf<
+  expectTypeOf<Emitter.Event<typeof emitter, 'greeting'>>().toEqualTypeOf<
     GreetingEvent & { type: 'greeting' }
   >()
 })
@@ -57,7 +57,7 @@ it('infers type of a custom event with explicit data type', () => {
     greeting: GreetingEvent<string>
   }>()
 
-  expectTypeOf<Emitter.EventType<typeof emitter, 'greeting'>>().toEqualTypeOf<
+  expectTypeOf<Emitter.Event<typeof emitter, 'greeting'>>().toEqualTypeOf<
     GreetingEvent<string> & { type: 'greeting' }
   >()
 })
@@ -73,7 +73,7 @@ it('infers type of a custom event with explicit return type', () => {
     greeting: GreetingEvent<string, number>
   }>()
 
-  expectTypeOf<Emitter.EventType<typeof emitter, 'greeting'>>().toEqualTypeOf<
+  expectTypeOf<Emitter.Event<typeof emitter, 'greeting'>>().toEqualTypeOf<
     GreetingEvent<string, number> & { type: 'greeting' }
   >()
 })

@@ -302,9 +302,123 @@ Removes all event listeners for the given event type. If no event `type` is prov
 
 ## Types
 
-This library also comes with a set of helper types to make your life easier.
+This library comes with a set of helper types for building absurdly strongly typed emitters.
 
-### `Emitter.EventType`
+### `EventMap`
+
+#### `EventMap.EventTypes`
+
+Returns a union of all the event types from the given event map.
+
+```ts
+type MyEventMap = { greeting: TypedEvent; handshake: TypedEvent }
+
+type Events = EventMap.EventTypes<MyEventMap>
+// "greeting" | "handshake"
+```
+
+
+#### `EventMap.Events`
+
+Returns a union of all public events from the given event map.
+
+```ts
+class GreetingEvent extends TypedEvent {}
+
+type MyEventMap = { greeting: GreetingEvent; handshake: TypedEvent }
+
+type Events = EventMap.Events<MyEventMap>
+// GreetingEvent | TypedEvent
+```
+
+#### `EventMap.Event`
+
+Returns the `Event` type (or its subtype) representing the given event type.
+
+```ts
+import { EventMap, TypedEvent } from 'rettime'
+
+type MyEventMap = { greeting: TypedEvent<'john'> }
+type GreetingEvent = EventMap.Event<MyEventMap, 'greeting'>
+// TypedEvent<'john'>
+```
+
+#### `EventMap.EventData`
+
+Returns the data type of the given event type.
+
+```ts
+import { EventMap, TypedEvent } from 'rettime'
+
+type MyEventMap = { greeting: TypedEvent<'hello'> }
+type GreetingData = EventMap.EventData<MyEventMap, 'greeting'>
+// "hello"
+```
+
+#### `EventMap.Listener`
+
+Returns the type of the given event's listener.
+
+```ts
+import { EventMap, TypedEvent } from 'rettime'
+
+type MyEventMap = { greeting: TypedEvent<string, number[]> }
+type GreetingListener = EventMap.Listener<MyEventMap, 'greeting'>
+// (event: TypedEvent<string>) => number[]
+```
+
+#### `EventMap.ListenerReturnType`
+
+Returns the return type of the given event's listener.
+
+```ts
+import { EventMap, TypedEvent } from 'rettime'
+
+type MyEventMap = { getTotalPrice: TypedEvent<Cart, number> }
+type CartTotal = EventMap.ListenerReturnType<MyEventMap, 'getTotalPrice'>
+// number
+```
+
+### `Emitter`
+
+#### `Emitter.AllEventTypes`
+
+Returns a union of all the event types, both public and reserved, for the given emitter.
+
+```ts
+const emitter = new Emitter<{ greeting: TypedEvent, handshake: TypedEvent }>()
+
+type Events = Emitter.AllEventTypes<typeof emitter>
+// "*" | "greeting" | "handshake"
+```
+
+#### `Emitter.PublicEventTypes`
+
+Returns a union of the public event types for the given emitter.
+
+```ts
+const emitter = new Emitter<{ greeting: TypedEvent, handshake: TypedEvent }>()
+
+type Events = Emitter.PublicEventTypes<typeof emitter>
+// "greeting" | "handshake"
+```
+
+> Public events exclude reserved events like `*`.
+
+#### `Emitter.Events`
+
+Returns a union of all public events for the given emitter.
+
+```ts
+class GreetingEvent extends TypedEvent {}
+
+const emitter = new Emitter<{ greeting: GreetingEvent, handshake: TypedEvent }>()
+
+type Events = Emitter.Events<typeof emitter>
+// GreetingEvent | TypedEvent
+```
+
+#### `Emitter.Event`
 
 Returns the `Event` type (or its subtype) representing the given listener.
 
@@ -312,11 +426,11 @@ Returns the `Event` type (or its subtype) representing the given listener.
 import { Emitter, TypedEvent } from 'rettime'
 
 const emitter = new Emitter<{ greeting: TypedEvent<'john'> }>()
-type GreetingEvent = Emitter.EventType<typeof emitter, 'greeting'>
+type GreetingEvent = Emitter.Event<typeof emitter, 'greeting'>
 // TypedEvent<'john'>
 ```
 
-### `Emitter.ListenerType`
+#### `Emitter.Listener`
 
 Returns the type of the given event's listener.
 
@@ -324,13 +438,13 @@ Returns the type of the given event's listener.
 import { Emitter, TypedEvent } from 'rettime'
 
 const emitter = new Emitter<{ greeting: TypedEvent<string, number[]> }>()
-type GreetingListener = Emitter.ListenerType<typeof emitter, 'greeting'>
+type GreetingListener = Emitter.Listener<typeof emitter, 'greeting'>
 // (event: TypedEvent<string>) => number[]
 ```
 
-> The `ListenerType` helper is in itself type-safe, allowing only known event types as the second argument.
+> The `Listener` helper is in itself type-safe, allowing only known event types as the second argument.
 
-### `Emitter.ListenerReturnType`
+#### `Emitter.ListenerReturnType`
 
 Returns the return type of the given event's listener.
 
