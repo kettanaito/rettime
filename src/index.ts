@@ -675,12 +675,10 @@ export class Emitter<EventMap extends DefaultEventMap> {
   ): { event: Event; revoke: () => void } {
     const { stopPropagation } = event
 
-    event.stopPropagation = new Proxy(event.stopPropagation, {
-      apply: (target, thisArg, argArray) => {
-        event[kPropagationStopped] = this
-        return Reflect.apply(target, thisArg, argArray)
-      },
-    })
+    event.stopPropagation = () => {
+      event[kPropagationStopped] = this
+      stopPropagation.call(event)
+    }
 
     return {
       event,
