@@ -125,7 +125,20 @@ export type TypedListenerOptions = {
 
 export namespace Emitter {
   /**
-   * Returns a union of all public event types from the given emitter.
+   * Returns a union of all event types, both public and reserved, for the given emitter.
+   *
+   * @example
+   * const emitter = new Emitter<{ greeting: TypedEvent, handshake: TypedEvent }>()
+   * type AllEventTypes = Emitter.AllEventTypes<typeof emitter>
+   * // "*" | "greeting" | "handshake"
+   */
+  export type AllEventTypes<
+    Target extends Emitter<any>,
+    EventMap extends DefaultEventMap = InferEventMap<Target>,
+  > = string extends keyof EventMap ? never : keyof EventMap & string
+
+  /**
+   * Returns a union of all public event types for the given emitter.
    *
    * @example
    * const emitter = new Emitter<{ greeting: TypedEvent, handshake: TypedEvent }>()
@@ -139,7 +152,7 @@ export namespace Emitter {
   > = string extends keyof UserEvents ? never : keyof UserEvents & string
 
   /**
-   * Returns a union of all public event type from the given emitter.
+   * Returns a union of all public event type for the given emitter.
    *
    * @example
    * const emitter = new Emitter<{ greeting: GreetingEvent, handshake: HandshakeEvent }>()

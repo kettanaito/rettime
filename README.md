@@ -381,6 +381,17 @@ type CartTotal = EventMap.ListenerReturnType<MyEventMap, 'getTotalPrice'>
 
 ### `Emitter`
 
+#### `Emitter.AllEventTypes`
+
+Returns a union of all the event types, both public and reserved, for the given emitter.
+
+```ts
+const emitter = new Emitter<{ greeting: TypedEvent, handshake: TypedEvent }>()
+
+type Events = Emitter.AllEventTypes<typeof emitter>
+// "*" | "greeting" | "handshake"
+```
+
 #### `Emitter.PublicEventTypes`
 
 Returns a union of the public event types for the given emitter.
