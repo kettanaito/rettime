@@ -94,7 +94,7 @@ type Brand<
   : Event & { type: EventType }
 
 type InferEventMap<Target extends Emitter<any>> =
-  Target extends Emitter<infer EventMap> ? MergedEventMap<EventMap> : never
+  Target extends Emitter<infer EventMap> ? WithReservedEvents<EventMap> : never
 
 /**
  * Extracts only user-defined events, excluding reserved event types.
@@ -105,10 +105,9 @@ type UserEventMap<EventMap extends DefaultEventMap> = Omit<
 >
 
 /**
- * Merges the user EventMap with the ReservedEventMap.
- * The '*' event type accepts a union of all user-defined events.
+ * Decorate the given `EventMap` with the reserved emitter events (e.g. `*`).
  */
-type MergedEventMap<EventMap extends DefaultEventMap> = EventMap &
+export type WithReservedEvents<EventMap extends DefaultEventMap> = EventMap &
   ReservedEventMap
 
 /**
@@ -196,8 +195,8 @@ export class Emitter<EventMap extends DefaultEventMap> {
   #listeners: LensList<
     Emitter.ListenerType<
       typeof this,
-      keyof MergedEventMap<EventMap> & string,
-      MergedEventMap<EventMap>
+      keyof WithReservedEvents<EventMap> & string,
+      WithReservedEvents<EventMap>
     >
   >
 
@@ -208,12 +207,12 @@ export class Emitter<EventMap extends DefaultEventMap> {
   /**
    * Adds a listener for the given event type.
    */
-  public on<EventType extends keyof MergedEventMap<EventMap> & string>(
+  public on<EventType extends keyof WithReservedEvents<EventMap> & string>(
     type: EventType,
     listener: Emitter.ListenerType<
       typeof this,
       EventType,
-      MergedEventMap<EventMap>
+      WithReservedEvents<EventMap>
     >,
     options?: TypedListenerOptions,
   ): typeof this {
@@ -224,12 +223,12 @@ export class Emitter<EventMap extends DefaultEventMap> {
   /**
    * Adds a one-time listener for the given event type.
    */
-  public once<EventType extends keyof MergedEventMap<EventMap> & string>(
+  public once<EventType extends keyof WithReservedEvents<EventMap> & string>(
     type: EventType,
     listener: Emitter.ListenerType<
       typeof this,
       EventType,
-      MergedEventMap<EventMap>
+      WithReservedEvents<EventMap>
     >,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this {
@@ -242,12 +241,12 @@ export class Emitter<EventMap extends DefaultEventMap> {
   /**
    * Prepends a listener for the given event type.
    */
-  public earlyOn<EventType extends keyof MergedEventMap<EventMap> & string>(
+  public earlyOn<EventType extends keyof WithReservedEvents<EventMap> & string>(
     type: EventType,
     listener: Emitter.ListenerType<
       typeof this,
       EventType,
-      MergedEventMap<EventMap>
+      WithReservedEvents<EventMap>
     >,
     options?: TypedListenerOptions,
   ): typeof this {
@@ -258,12 +257,14 @@ export class Emitter<EventMap extends DefaultEventMap> {
   /**
    * Prepends a one-time listener for the given event type.
    */
-  public earlyOnce<EventType extends keyof MergedEventMap<EventMap> & string>(
+  public earlyOnce<
+    EventType extends keyof WithReservedEvents<EventMap> & string,
+  >(
     type: EventType,
     listener: Emitter.ListenerType<
       typeof this,
       EventType,
-      MergedEventMap<EventMap>
+      WithReservedEvents<EventMap>
     >,
     options?: Omit<TypedListenerOptions, 'once'>,
   ): typeof this {
@@ -410,13 +411,13 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * Removes a listener for the given event type.
    */
   public removeListener<
-    EventType extends keyof MergedEventMap<EventMap> & string,
+    EventType extends keyof WithReservedEvents<EventMap> & string,
   >(
     type: EventType,
     listener: Emitter.ListenerType<
       typeof this,
       EventType,
-      MergedEventMap<EventMap>
+      WithReservedEvents<EventMap>
     >,
   ): void {
     this.#listeners.delete(type, listener)
@@ -427,7 +428,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * If no event type is provided, removes all existing listeners.
    */
   public removeAllListeners<
-    EventType extends keyof MergedEventMap<EventMap> & string,
+    EventType extends keyof WithReservedEvents<EventMap> & string,
   >(type?: EventType): void {
     if (type == null) {
       this.#listeners.clear()
@@ -441,10 +442,12 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * Returns the list of listeners for the given event type.
    * If no even type is provided, returns all listeners.
    */
-  public listeners<EventType extends keyof MergedEventMap<EventMap> & string>(
+  public listeners<
+    EventType extends keyof WithReservedEvents<EventMap> & string,
+  >(
     type?: EventType,
   ): Array<
-    Emitter.ListenerType<typeof this, EventType, MergedEventMap<EventMap>>
+    Emitter.ListenerType<typeof this, EventType, WithReservedEvents<EventMap>>
   > {
     if (type == null) {
       return this.#listeners.getAll()
@@ -458,7 +461,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    * If no even type is provided, returns the total number of listeners.
    */
   public listenerCount<
-    EventType extends keyof MergedEventMap<EventMap> & string,
+    EventType extends keyof WithReservedEvents<EventMap> & string,
   >(type?: EventType): number {
     if (type == null) {
       return this.#listeners.size
@@ -467,12 +470,12 @@ export class Emitter<EventMap extends DefaultEventMap> {
     return this.listeners(type).length
   }
 
-  #addListener<EventType extends keyof MergedEventMap<EventMap> & string>(
+  #addListener<EventType extends keyof WithReservedEvents<EventMap> & string>(
     type: EventType,
     listener: Emitter.ListenerType<
       typeof this,
       EventType,
-      MergedEventMap<EventMap>
+      WithReservedEvents<EventMap>
     >,
     options: TypedListenerOptions | undefined,
     insertMode: 'append' | 'prepend' = 'append',
