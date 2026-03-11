@@ -213,7 +213,7 @@ export namespace Emitter {
    *
    * @example
    * const emitter = new Emitter<{ getTotalPrice: TypedEvent<Cart, number> }>()
-   * type ListenerReturnType = Emitter.InferListenerReturnType<typeof emitter, 'getTotalPrice'>
+   * type ListenerReturnType = Emitter.ListenerReturnType<typeof emitter, 'getTotalPrice'>
    * // number
    */
   export type ListenerReturnType<
@@ -226,6 +226,82 @@ export namespace Emitter {
       : EventMap[EventType] extends TypedEvent<unknown, infer ReturnType>
         ? ReturnType
         : never
+}
+
+export namespace EventMap {
+  /**
+   * Returns a union of all public event types from the given event map.
+   *
+   * @example
+   * type MyEventMap = { greeting: TypedEvent, handshake: TypedEvent }
+   * type EventTypes = EventMap.EventTypes<MyEventMap>
+   * // "greeting" | "handshake"
+   */
+  export type EventTypes<Map extends DefaultEventMap> = Emitter.EventTypes<
+    Emitter<Map>
+  >
+
+  /**
+   * Returns a union of all public event type from the given event map.
+   *
+   * @example
+   * type MyEventMap = { greeting: GreetingEvent, handshake: HandshakeEvent }
+   * type Events = EventMap.Events<MyEventMap>
+   * // GreetingEvent | HandshakeEvent
+   */
+  export type Events<Map extends DefaultEventMap> = Emitter.Events<Emitter<Map>>
+
+  /**
+   * Returns an appropriate `Event` type for the given event type.
+   *
+   * @example
+   * type MyEventMap = { greeting: TypedEvent<string> }
+   * type GreetingEvent = EventMap.Event<MyEventMap, 'greeting'>
+   * // TypedEvent<string>
+   */
+  export type Event<
+    Map extends DefaultEventMap,
+    Type extends keyof WithReservedEvents<Map> & string,
+  > = Emitter.Event<Emitter<Map>, Type, WithReservedEvents<Map>>
+
+  /**
+   * Returns an appropriate event data type for the given event type.
+   *
+   * @example
+   * type MyEventMap = { greeting: TypedEvent<'hello'> }
+   * type GreetingData = EventMap.EventData<MyEventMap, 'greeting'>
+   * // "hello"
+   */
+  export type EventData<
+    Map extends DefaultEventMap,
+    Type extends keyof WithReservedEvents<Map> & string,
+  > = Emitter.EventData<Emitter<Map>, Type, WithReservedEvents<Map>>
+
+  /**
+   * Returns the listener type for the given event type.
+   *
+   * @example
+   * type MyEventMap = { getTotalPrice: TypedEvent<Cart, number> }>
+   * type Listener = EventMap.Listener<MyEventMap, 'getTotalPrice'>
+   * // (event: TypedEvent<Cart>) => number
+   */
+  export type Listener<
+    Map extends DefaultEventMap,
+    Type extends keyof WithReservedEvents<Map> & string,
+  > = Emitter.Listener<Emitter<Map>, Type, WithReservedEvents<Map>>
+
+  /**
+   * Returns the return type of the listener for the given event type.
+   *
+   * @example
+   * type MyEventMap = { getTotalPrice: TypedEvent<Cart, number> }
+   * type ListenerReturnType = EventMap.ListenerReturnType<MyEventMap, 'getTotalPrice'>
+   * // number
+   */
+  export type ListenerReturnType<
+    Map extends DefaultEventMap,
+    Type extends keyof WithReservedEvents<Map> & string,
+  > = Emitter.ListenerReturnType<Emitter<Map>, Type, WithReservedEvents<Map>>
 }
 
 export class Emitter<EventMap extends DefaultEventMap> {
