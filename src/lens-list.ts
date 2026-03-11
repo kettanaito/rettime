@@ -56,9 +56,11 @@ export class LensList<T> {
 
     this.#list = this.#list.filter((item) => item[1] !== value)
 
-    for (const [existingKey, values] of this.#lens) {
-      if (existingKey === key && values.includes(value)) {
-        values.splice(values.indexOf(value), 1)
+    const values = this.#lens.get(key)
+    if (values) {
+      const index = values.indexOf(value)
+      if (index !== -1) {
+        values.splice(index, 1)
       }
     }
   }
