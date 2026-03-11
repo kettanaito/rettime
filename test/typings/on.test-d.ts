@@ -7,7 +7,7 @@ it('infers event type', () => {
 
   emitter.on('greeting', (event) => {
     expectTypeOf<typeof event>().toExtend<
-      Emitter.EventType<typeof emitter, 'greeting'>
+      Emitter.Event<typeof emitter, 'greeting'>
     >()
     expectTypeOf(event.type).toExtend<'greeting'>()
     expectTypeOf(event.data).toBeVoid()
@@ -21,7 +21,7 @@ it('infers event type with a custom data type', () => {
 
   emitter.on('greeting', (event) => {
     expectTypeOf<typeof event>().toExtend<
-      Emitter.EventType<typeof emitter, 'greeting'>
+      Emitter.Event<typeof emitter, 'greeting'>
     >()
     expectTypeOf(event.type).toExtend<'greeting'>()
     expectTypeOf(event.data).toBeString()
@@ -43,7 +43,7 @@ it('infers custom event type', () => {
 
   emitter.on('greeting', (event) => {
     expectTypeOf<typeof event>().toExtend<
-      Emitter.EventType<typeof emitter, 'greeting'>
+      Emitter.Event<typeof emitter, 'greeting'>
     >()
     expectTypeOf(event.type).toExtend<'greeting'>()
     expectTypeOf(event.data).toBeVoid()
@@ -66,7 +66,7 @@ it('infers custom event type with a custom data type', () => {
 
   emitter.on('greeting', (event) => {
     expectTypeOf<typeof event>().toExtend<
-      Emitter.EventType<typeof emitter, 'greeting'>
+      Emitter.Event<typeof emitter, 'greeting'>
     >()
     expectTypeOf(event.type).toExtend<'greeting'>()
     expectTypeOf(event.data).toExtend<'john'>()

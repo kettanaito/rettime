@@ -13,7 +13,7 @@ it('does not hang forever due to the "No error for last overload signature" erro
 
     public on<Type extends keyof CustomEventMap>(
       type: Type,
-      listener: Emitter.ListenerType<typeof this.emitter, Type>,
+      listener: Emitter.Listener<typeof this.emitter, Type>,
     ): void {
       this.emitter.on(type, listener)
     }

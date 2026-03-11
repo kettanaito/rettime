@@ -2,7 +2,7 @@ import { Emitter, TypedEvent } from '#src/index.js'
 
 it('emits event without any data', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
-  const listener = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>()
+  const listener = vi.fn<Emitter.Listener<typeof emitter, 'hello'>>()
   emitter.on('hello', listener)
 
   const event = new TypedEvent('hello')
@@ -14,7 +14,7 @@ it('emits event without any data', () => {
 
 it('emits event with data', () => {
   const emitter = new Emitter<{ hello: TypedEvent<'world'> }>()
-  const listener = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>()
+  const listener = vi.fn<Emitter.Listener<typeof emitter, 'hello'>>()
   emitter.on('hello', listener)
 
   const event = new TypedEvent('hello', { data: 'world' as const })
@@ -27,8 +27,8 @@ it('emits event with data', () => {
 
 it('calls all listeners for the event', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
-  const listenerOne = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>()
-  const listenerTwo = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>()
+  const listenerOne = vi.fn<Emitter.Listener<typeof emitter, 'hello'>>()
+  const listenerTwo = vi.fn<Emitter.Listener<typeof emitter, 'hello'>>()
   emitter.on('hello', listenerOne)
   emitter.on('hello', listenerTwo)
 
@@ -46,7 +46,7 @@ it('does not call listeners for non-matching event', () => {
     one: TypedEvent
     two: TypedEvent
   }>()
-  const listener = vi.fn<Emitter.ListenerType<typeof emitter, 'one'>>()
+  const listener = vi.fn<Emitter.Listener<typeof emitter, 'one'>>()
   emitter.on('one', listener)
 
   expect(emitter.emit(new TypedEvent('two'))).toBe(false)
@@ -55,7 +55,7 @@ it('does not call listeners for non-matching event', () => {
 
 it('removes the one-time listener after it has been called', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
-  const listener = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>()
+  const listener = vi.fn<Emitter.Listener<typeof emitter, 'hello'>>()
   emitter.once('hello', listener)
 
   const event = new TypedEvent('hello')
@@ -71,12 +71,12 @@ it('removes the one-time listener after it has been called', () => {
 
 it('stops calling listeners if the immediate propagation is stopped', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
-  const listenerOne = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>(
+  const listenerOne = vi.fn<Emitter.Listener<typeof emitter, 'hello'>>(
     (event) => {
       event.stopImmediatePropagation()
     },
   )
-  const listenerTwo = vi.fn<Emitter.ListenerType<typeof emitter, 'hello'>>()
+  const listenerTwo = vi.fn<Emitter.Listener<typeof emitter, 'hello'>>()
   emitter.on('hello', listenerOne)
   emitter.on('hello', listenerTwo)
 
@@ -89,8 +89,8 @@ it('stops calling listeners if the propagation is stopped', async () => {
   const emitterOne = new Emitter<{ greet: TypedEvent<string> }>()
   const emitterTwo = new Emitter<{ greet: TypedEvent<string> }>()
 
-  const listenerOne = vi.fn<Emitter.ListenerType<typeof emitterOne, 'greet'>>()
-  const listenerTwo = vi.fn<Emitter.ListenerType<typeof emitterOne, 'greet'>>(
+  const listenerOne = vi.fn<Emitter.Listener<typeof emitterOne, 'greet'>>()
+  const listenerTwo = vi.fn<Emitter.Listener<typeof emitterOne, 'greet'>>(
     (event) => event.stopPropagation(),
   )
 

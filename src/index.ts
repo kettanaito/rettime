@@ -105,7 +105,7 @@ type UserEventMap<EventMap extends DefaultEventMap> = Omit<
 >
 
 /**
- * Decorate the given `EventMap` with the reserved emitter events (e.g. `*`).
+ * Decorates the given `EventMap` with the reserved emitter events (e.g. `*`).
  */
 export type WithReservedEvents<EventMap extends DefaultEventMap> = EventMap &
   ReservedEventMap
@@ -126,14 +126,28 @@ const kListenerOptions = Symbol('kListenerOptions')
 
 export namespace Emitter {
   /**
+   * Returns a union of all user-defined event types from the given emitter.
+   *
+   * @example
+   * const emitter = new Emitter<{ greeting: TypedEvent, handshake: TypedEvent }>()
+   * type EventTypes = Emitter.EventTypes<typeof emitter>
+   * // "greeting" | "handshake"
+   */
+  export type EventTypes<
+    Target extends Emitter<any>,
+    EventMap extends DefaultEventMap = InferEventMap<Target>,
+    UserEvents extends UserEventMap<EventMap> = UserEventMap<EventMap>,
+  > = string extends keyof UserEvents ? never : keyof UserEvents & string
+
+  /**
    * Returns an appropriate `Event` type for the given event type.
    *
    * @example
    * const emitter = new Emitter<{ greeting: TypedEvent<string> }>()
-   * type GreetingEvent = Emitter.InferEventType<typeof emitter, 'greeting'>
+   * type GreetingEvent = Emitter.Event<typeof emitter, 'greeting'>
    * // TypedEvent<string>
    */
-  export type EventType<
+  export type Event<
     Target extends Emitter<any>,
     EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
@@ -142,7 +156,15 @@ export namespace Emitter {
       ? AllEvents<UserEventMap<EventMap>>
       : Brand<EventMap[EventType], EventType>
 
-  export type EventDataType<
+  /**
+   * Returns an appropriate event data type for the given event type.
+   *
+   * @example
+   * const emitter = new Emitter<{ greeting: TypedEvent<'hello'> }>()
+   * type GreetingData = Emitter.EventData<typeof emitter, 'gretting'>
+   * // "hello"
+   */
+  export type EventData<
     Target extends Emitter<any>,
     EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
@@ -156,7 +178,7 @@ export namespace Emitter {
    * type Listener = Emitter.ListenerType<typeof emitter, 'getTotalPrice'>
    * // (event: TypedEvent<Cart>) => number
    */
-  export type ListenerType<
+  export type Listener<
     Target extends Emitter<any>,
     EventType extends keyof EventMap & string,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
@@ -164,7 +186,7 @@ export namespace Emitter {
     IsReservedEvent<EventType> extends true
       ? (event: AllEvents<UserEventMap<EventMap>>) => void
       : (
-          event: Emitter.EventType<Target, EventType, EventMap>,
+          event: Emitter.Event<Target, EventType, EventMap>,
         ) => Emitter.ListenerReturnType<Target, EventType, EventMap> extends [
           void,
         ]
@@ -193,7 +215,7 @@ export namespace Emitter {
 
 export class Emitter<EventMap extends DefaultEventMap> {
   #listeners: LensList<
-    Emitter.ListenerType<
+    Emitter.Listener<
       typeof this,
       keyof WithReservedEvents<EventMap> & string,
       WithReservedEvents<EventMap>
@@ -209,7 +231,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    */
   public on<EventType extends keyof WithReservedEvents<EventMap> & string>(
     type: EventType,
-    listener: Emitter.ListenerType<
+    listener: Emitter.Listener<
       typeof this,
       EventType,
       WithReservedEvents<EventMap>
@@ -225,7 +247,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    */
   public once<EventType extends keyof WithReservedEvents<EventMap> & string>(
     type: EventType,
-    listener: Emitter.ListenerType<
+    listener: Emitter.Listener<
       typeof this,
       EventType,
       WithReservedEvents<EventMap>
@@ -243,7 +265,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
    */
   public earlyOn<EventType extends keyof WithReservedEvents<EventMap> & string>(
     type: EventType,
-    listener: Emitter.ListenerType<
+    listener: Emitter.Listener<
       typeof this,
       EventType,
       WithReservedEvents<EventMap>
@@ -261,7 +283,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
     EventType extends keyof WithReservedEvents<EventMap> & string,
   >(
     type: EventType,
-    listener: Emitter.ListenerType<
+    listener: Emitter.Listener<
       typeof this,
       EventType,
       WithReservedEvents<EventMap>
@@ -414,7 +436,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
     EventType extends keyof WithReservedEvents<EventMap> & string,
   >(
     type: EventType,
-    listener: Emitter.ListenerType<
+    listener: Emitter.Listener<
       typeof this,
       EventType,
       WithReservedEvents<EventMap>
@@ -447,7 +469,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
   >(
     type?: EventType,
   ): Array<
-    Emitter.ListenerType<typeof this, EventType, WithReservedEvents<EventMap>>
+    Emitter.Listener<typeof this, EventType, WithReservedEvents<EventMap>>
   > {
     if (type == null) {
       return this.#listeners.getAll()
@@ -472,7 +494,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
   #addListener<EventType extends keyof WithReservedEvents<EventMap> & string>(
     type: EventType,
-    listener: Emitter.ListenerType<
+    listener: Emitter.Listener<
       typeof this,
       EventType,
       WithReservedEvents<EventMap>
