@@ -26,7 +26,6 @@ export interface TypedEvent<
 const kDefaultPrevented = Symbol('kDefaultPrevented')
 const kPropagationStopped = Symbol('kPropagationStopped')
 const kImmediatePropagationStopped = Symbol('kImmediatePropagationStopped')
-const kListenerOptions = Symbol('kListenerOptions')
 
 export class TypedEvent<
   DataType = void,
@@ -211,9 +210,7 @@ export namespace Emitter {
     EventMap extends DefaultEventMap = InferEventMap<Target>,
   > =
     IsReservedEvent<EventType> extends true
-      ? (
-          event: Emitter.Event<Target, EventType, EventMap>,
-        ) => void
+      ? (event: Emitter.Event<Target, EventType, EventMap>) => void
       : (
           event: Emitter.Event<Target, EventType, EventMap>,
         ) => Emitter.ListenerReturnType<Target, EventType, EventMap> extends [
@@ -317,7 +314,6 @@ export namespace EventMap {
   > = Emitter.ListenerReturnType<Emitter<Map>, Type, WithReservedEvents<Map>>
 }
 
-
 export class Emitter<EventMap extends DefaultEventMap> {
   #listeners: LensList<
     Emitter.Listener<
@@ -327,8 +323,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
     >
   >
 
+  #listenerOptions: WeakMap<Function, TypedListenerOptions>
+
   constructor() {
     this.#listeners = new LensList()
+    this.#listenerOptions = new WeakMap()
   }
 
   /**
@@ -614,11 +613,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
     }
 
     if (options) {
-      Object.defineProperty(listener, kListenerOptions, {
-        value: options,
-        enumerable: false,
-        writable: false,
-      })
+      this.#listenerOptions.set(listener, options)
 
       if (options.signal) {
         options.signal.addEventListener(
@@ -652,15 +647,10 @@ export class Emitter<EventMap extends DefaultEventMap> {
     }
   }
 
-  #callListener(
-    event: Event,
-    listener: ((event: any) => any) & {
-      [kListenerOptions]?: TypedListenerOptions
-    },
-  ) {
+  #callListener(event: Event, listener: (event: any) => any) {
     const returnValue = listener.call(this, event)
 
-    if (listener[kListenerOptions]?.once) {
+    if (this.#listenerOptions.get(listener)?.once) {
       const key = this.#isTypelessListener(listener) ? '*' : event.type
       this.#listeners.delete(key, listener)
     }
