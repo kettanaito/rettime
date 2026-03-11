@@ -122,6 +122,20 @@ export type TypedListenerOptions = {
   signal?: AbortSignal
 }
 
+export type EmitterHookMap<EventMap extends DefaultEventMap> = {
+  newListener: (
+    type: keyof WithReservedEvents<EventMap> & string,
+    listener: {
+      [K in keyof WithReservedEvents<EventMap> & string]: Emitter.Listener<
+        Emitter<EventMap>,
+        K,
+        WithReservedEvents<EventMap>
+      >
+    }[keyof WithReservedEvents<EventMap> & string],
+    options: TypedListenerOptions | undefined,
+  ) => void
+}
+
 export namespace Emitter {
   /**
    * Returns a union of all event types, both public and reserved, for the given emitter.
@@ -325,9 +339,32 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
   #listenerOptions: WeakMap<Function, TypedListenerOptions>
 
+  #hookListeners: LensList<(...args: Array<any>) => void>
+
+  public readonly hooks: {
+    on<HookType extends keyof EmitterHookMap<EventMap>>(
+      type: HookType,
+      callback: EmitterHookMap<EventMap>[HookType],
+    ): void
+    removeListener<HookType extends keyof EmitterHookMap<EventMap>>(
+      type: HookType,
+      callback: EmitterHookMap<EventMap>[HookType],
+    ): void
+  }
+
   constructor() {
     this.#listeners = new LensList()
     this.#listenerOptions = new WeakMap()
+    this.#hookListeners = new LensList()
+
+    this.hooks = {
+      on: (hook, callback) => {
+        this.#hookListeners.append(hook, callback)
+      },
+      removeListener: (hook, callback) => {
+        this.#hookListeners.delete(hook, callback)
+      },
+    }
   }
 
   /**
@@ -558,6 +595,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
   >(type?: EventType): void {
     if (type == null) {
       this.#listeners.clear()
+      this.#hookListeners.clear()
       return
     }
 
@@ -606,6 +644,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
     options: TypedListenerOptions | undefined,
     insertMode: 'append' | 'prepend' = 'append',
   ): void {
+    // Notify newListener hooks before adding the listener.
+    for (const handler of this.#hookListeners.get('newListener')) {
+      handler(type, listener, options)
+    }
+
     if (insertMode === 'prepend') {
       this.#listeners.prepend(type, listener)
     } else {
