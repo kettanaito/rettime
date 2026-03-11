@@ -47,3 +47,34 @@ it('infers listener return type of a custom event', async () => {
     Emitter.ListenerReturnType<typeof emitter, 'greeting'>
   >().toEqualTypeOf<number>()
 })
+
+it('returns void for "*" for an emitter with a single event', () => {
+  class GreetingEvent<
+    I,
+    O = unknown,
+    T extends string = string,
+  > extends TypedEvent<I, O, T> {}
+
+  const emitter = new Emitter<{ greeting: GreetingEvent<string, number> }>()
+
+  expectTypeOf<
+    Emitter.ListenerReturnType<typeof emitter, '*'>
+  >().toBeVoid()
+})
+
+it('returns void for "*" for an emitter with many events', () => {
+  class GreetingEvent<
+    I,
+    O = unknown,
+    T extends string = string,
+  > extends TypedEvent<I, O, T> {}
+
+  const emitter = new Emitter<{
+    greeting: GreetingEvent<string, number>
+    handshake: TypedEvent<'hello', string>
+  }>()
+
+  expectTypeOf<
+    Emitter.ListenerReturnType<typeof emitter, '*'>
+  >().toBeVoid()
+})
