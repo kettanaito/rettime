@@ -308,7 +308,7 @@ This library comes with a set of helper types for building absurdly strongly typ
 
 #### `EventMap.EventTypes`
 
-Returns a union of all public event types from the given event map.
+Returns a union of all the event types from the given event map.
 
 ```ts
 type MyEventMap = { greeting: TypedEvent; handshake: TypedEvent }
@@ -316,6 +316,7 @@ type MyEventMap = { greeting: TypedEvent; handshake: TypedEvent }
 type Events = EventMap.EventTypes<MyEventMap>
 // "greeting" | "handshake"
 ```
+
 
 #### `EventMap.Events`
 
@@ -380,16 +381,18 @@ type CartTotal = EventMap.ListenerReturnType<MyEventMap, 'getTotalPrice'>
 
 ### `Emitter`
 
-#### `Emitter.EventTypes`
+#### `Emitter.PublicEventTypes`
 
-Returns a union of all public event types for the given emitter.
+Returns a union of the public event types for the given emitter.
 
 ```ts
 const emitter = new Emitter<{ greeting: TypedEvent, handshake: TypedEvent }>()
 
-type Events = Emitter.EventTypes<typeof emitter>
+type Events = Emitter.PublicEventTypes<typeof emitter>
 // "greeting" | "handshake"
 ```
+
+> Public events exclude reserved events like `*`.
 
 #### `Emitter.Events`
 

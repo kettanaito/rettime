@@ -26,6 +26,7 @@ export interface TypedEvent<
 const kDefaultPrevented = Symbol('kDefaultPrevented')
 const kPropagationStopped = Symbol('kPropagationStopped')
 const kImmediatePropagationStopped = Symbol('kImmediatePropagationStopped')
+const kListenerOptions = Symbol('kListenerOptions')
 
 export class TypedEvent<
   DataType = void,
@@ -122,8 +123,6 @@ export type TypedListenerOptions = {
   signal?: AbortSignal
 }
 
-const kListenerOptions = Symbol('kListenerOptions')
-
 export namespace Emitter {
   /**
    * Returns a union of all public event types from the given emitter.
@@ -133,7 +132,7 @@ export namespace Emitter {
    * type EventTypes = Emitter.EventTypes<typeof emitter>
    * // "greeting" | "handshake"
    */
-  export type EventTypes<
+  export type PublicEventTypes<
     Target extends Emitter<any>,
     EventMap extends DefaultEventMap = InferEventMap<Target>,
     UserEvents extends UserEventMap<EventMap> = UserEventMap<EventMap>,
@@ -237,9 +236,8 @@ export namespace EventMap {
    * type EventTypes = EventMap.EventTypes<MyEventMap>
    * // "greeting" | "handshake"
    */
-  export type EventTypes<Map extends DefaultEventMap> = Emitter.EventTypes<
-    Emitter<Map>
-  >
+  export type EventTypes<Map extends DefaultEventMap> =
+    Emitter.PublicEventTypes<Emitter<Map>>
 
   /**
    * Returns a union of all public event type from the given event map.
