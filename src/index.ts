@@ -338,6 +338,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
   >
 
   #listenerOptions: WeakMap<Function, TypedListenerOptions>
+  #typelessListeners: WeakSet<Function>
 
   #hookListeners: LensList<(...args: Array<any>) => void>
 
@@ -355,6 +356,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
   constructor() {
     this.#listeners = new LensList()
     this.#listenerOptions = new WeakMap()
+    this.#typelessListeners = new WeakSet()
     this.#hookListeners = new LensList()
 
     this.hooks = {
@@ -649,6 +651,10 @@ export class Emitter<EventMap extends DefaultEventMap> {
       handler(type, listener, options)
     }
 
+    if (type === '*') {
+      this.#typelessListeners.add(listener)
+    }
+
     if (insertMode === 'prepend') {
       this.#listeners.prepend(type, listener)
     } else {
@@ -675,12 +681,10 @@ export class Emitter<EventMap extends DefaultEventMap> {
   ): { event: Event; revoke: () => void } {
     const { stopPropagation } = event
 
-    event.stopPropagation = new Proxy(event.stopPropagation, {
-      apply: (target, thisArg, argArray) => {
-        event[kPropagationStopped] = this
-        return Reflect.apply(target, thisArg, argArray)
-      },
-    })
+    event.stopPropagation = () => {
+      event[kPropagationStopped] = this
+      stopPropagation.call(event)
+    }
 
     return {
       event,
@@ -714,6 +718,6 @@ export class Emitter<EventMap extends DefaultEventMap> {
   }
 
   #isTypelessListener(listener: any): boolean {
-    return this.#listeners.get('*').includes(listener)
+    return this.#typelessListeners.has(listener)
   }
 }
