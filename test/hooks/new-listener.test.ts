@@ -12,8 +12,11 @@ it('calls the newListener hook when a listener is added via .on()', () => {
   const listener = vi.fn()
   emitter.on('hello', listener)
 
-  expect(newListenerListener).toHaveBeenCalledOnce()
-  expect(newListenerListener).toHaveBeenCalledWith('hello', listener, undefined)
+  expect(newListenerListener).toHaveBeenCalledExactlyOnceWith(
+    'hello',
+    listener,
+    undefined,
+  )
 })
 
 it('calls the newListener hook when a listener is added via .once()', () => {
@@ -48,8 +51,9 @@ it('calls the newListener hook when a listener is added via .earlyOnce()', () =>
   const listener = vi.fn()
   emitter.earlyOnce('hello', listener)
 
-  expect(hook).toHaveBeenCalledOnce()
-  expect(hook).toHaveBeenCalledWith('hello', listener, { once: true })
+  expect(hook).toHaveBeenCalledExactlyOnceWith('hello', listener, {
+    once: true,
+  })
 })
 
 it('calls the newListener hook for every listener added', () => {
@@ -92,8 +96,7 @@ it('calls the newListener hook when a wildcard listener is added', () => {
   const listener = vi.fn()
   emitter.on('*', listener)
 
-  expect(hook).toHaveBeenCalledOnce()
-  expect(hook).toHaveBeenCalledWith('*', listener, undefined)
+  expect(hook).toHaveBeenCalledExactlyOnceWith('*', listener, undefined)
 })
 
 it('fires the newListener hook before the listener is added', () => {
@@ -121,8 +124,7 @@ it('exposes listener options in the newListener hook', () => {
   const listener = vi.fn()
   emitter.on('hello', listener, { once: true, signal: controller.signal })
 
-  expect(hook).toHaveBeenCalledOnce()
-  expect(hook).toHaveBeenCalledWith('hello', listener, {
+  expect(hook).toHaveBeenCalledExactlyOnceWith('hello', listener, {
     once: true,
     signal: controller.signal,
   })
