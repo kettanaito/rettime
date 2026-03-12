@@ -46,8 +46,6 @@ it('persists the hook through emitter.removeAllListeners() if persist is true', 
   const beforeEmitHook = vi.fn()
   emitter.hooks.on('beforeEmit', beforeEmitHook, { persist: true })
 
-  const listener = vi.fn()
-  emitter.on('hello', listener)
   emitter.removeAllListeners()
 
   emitter.on('hello', vi.fn())
