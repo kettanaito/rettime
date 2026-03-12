@@ -1,4 +1,4 @@
-import { Emitter, TypedEvent, TypedListenerOptions } from '#src/index.js'
+import { Emitter, TypedEvent, HookListenerOptions } from '#src/index.js'
 
 it('infers event type and listener for a single event', () => {
   const emitter = new Emitter<{
@@ -86,6 +86,6 @@ it('infers the options type', () => {
   }>()
 
   emitter.hooks.on('newListener', (type, listener, options) => {
-    expectTypeOf(options).toEqualTypeOf<TypedListenerOptions | undefined>()
+    expectTypeOf(options).toEqualTypeOf<HookListenerOptions | undefined>()
   })
 })

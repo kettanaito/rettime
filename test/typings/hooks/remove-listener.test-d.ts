@@ -1,4 +1,4 @@
-import { Emitter, TypedEvent, TypedListenerOptions } from '#src/index.js'
+import { Emitter, TypedEvent, HookListenerOptions } from '#src/index.js'
 
 it('infers event type and listener for a single event', () => {
   const emitter = new Emitter<{
@@ -11,7 +11,7 @@ it('infers event type and listener for a single event', () => {
       | Emitter.Listener<typeof emitter, 'greeting'>
       | Emitter.Listener<typeof emitter, '*'>
     >()
-    expectTypeOf(options).toEqualTypeOf<TypedListenerOptions | undefined>()
+    expectTypeOf(options).toEqualTypeOf<HookListenerOptions | undefined>()
   })
 })
 
@@ -28,7 +28,7 @@ it('infers event type and listener for multiple events', () => {
       | Emitter.Listener<typeof emitter, 'farewell'>
       | Emitter.Listener<typeof emitter, '*'>
     >()
-    expectTypeOf(options).toEqualTypeOf<TypedListenerOptions | undefined>()
+    expectTypeOf(options).toEqualTypeOf<HookListenerOptions | undefined>()
   })
 })
 
@@ -88,6 +88,6 @@ it('infers the options type', () => {
   }>()
 
   emitter.hooks.on('removeListener', (type, listener, options) => {
-    expectTypeOf(options).toEqualTypeOf<TypedListenerOptions | undefined>()
+    expectTypeOf(options).toEqualTypeOf<HookListenerOptions | undefined>()
   })
 })

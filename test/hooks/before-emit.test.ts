@@ -40,6 +40,23 @@ it('allows modifying the event before it is emitted', () => {
   )
 })
 
+it('persists the hook through emitter.removeAllListeners() if persist is true', () => {
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+
+  const beforeEmitHook = vi.fn()
+  emitter.hooks.on('beforeEmit', beforeEmitHook, { persist: true })
+
+  const listener = vi.fn()
+  emitter.on('hello', listener)
+  emitter.removeAllListeners()
+
+  emitter.on('hello', vi.fn())
+  const event = new TypedEvent('hello')
+  emitter.emit(event)
+
+  expect(beforeEmitHook).toHaveBeenCalledExactlyOnceWith(event)
+})
+
 it('prevents event from being emitted if the hook returns false', () => {
   const emitter = new Emitter<{ hello: TypedEvent; goodbye: TypedEvent }>()
 

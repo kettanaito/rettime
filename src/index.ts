@@ -122,6 +122,10 @@ export type TypedListenerOptions = {
   signal?: AbortSignal
 }
 
+export interface HookListenerOptions extends TypedListenerOptions {
+  persist?: boolean
+}
+
 export type EmitterHookMap<EventMap extends DefaultEventMap> = {
   newListener: (
     type: keyof WithReservedEvents<EventMap> & string,
@@ -132,7 +136,7 @@ export type EmitterHookMap<EventMap extends DefaultEventMap> = {
         WithReservedEvents<EventMap>
       >
     }[keyof WithReservedEvents<EventMap> & string],
-    options: TypedListenerOptions | undefined,
+    options: HookListenerOptions | undefined,
   ) => void
 
   removeListener: (
@@ -144,7 +148,7 @@ export type EmitterHookMap<EventMap extends DefaultEventMap> = {
         WithReservedEvents<EventMap>
       >
     }[keyof WithReservedEvents<EventMap> & string],
-    options: TypedListenerOptions | undefined,
+    options: HookListenerOptions | undefined,
   ) => void
 
   beforeEmit: (event: EventMap[keyof EventMap & string]) => boolean | void
@@ -358,16 +362,19 @@ export class Emitter<EventMap extends DefaultEventMap> {
   #typelessListeners: WeakSet<Function>
 
   #hookListeners: LensList<EmitterHookMap<EventMap>>
+  #hookListenerOptions: WeakMap<Function, HookListenerOptions>
 
   public readonly hooks: {
     on<HookType extends keyof EmitterHookMap<EventMap>>(
       type: HookType,
       callback: EmitterHookMap<EventMap>[HookType],
-      options?: TypedListenerOptions,
+      options?: HookListenerOptions,
     ): void
+
     removeListener<HookType extends keyof EmitterHookMap<EventMap>>(
       type: HookType,
       callback: EmitterHookMap<EventMap>[HookType],
+      options?: HookListenerOptions,
     ): void
   }
 
@@ -376,6 +383,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
     this.#listenerOptions = new WeakMap()
     this.#typelessListeners = new WeakSet()
     this.#hookListeners = new LensList()
+    this.#hookListenerOptions = new WeakMap()
 
     this.hooks = {
       on: (hook, callback, options) => {
@@ -389,6 +397,10 @@ export class Emitter<EventMap extends DefaultEventMap> {
         }
 
         this.#hookListeners.append(hook, callback)
+
+        if (options) {
+          this.#hookListenerOptions.set(callback, options)
+        }
 
         if (options?.signal) {
           options.signal.addEventListener(
@@ -627,7 +639,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
     this.#listeners.delete(type, listener)
 
     for (const hook of this.#hookListeners.get('removeListener')) {
-      hook(type, listener as Parameters<EmitterHookMap<EventMap>['removeListener']>[1], options)
+      hook(
+        type,
+        listener as Parameters<EmitterHookMap<EventMap>['removeListener']>[1],
+        options,
+      )
     }
   }
 
@@ -640,7 +656,16 @@ export class Emitter<EventMap extends DefaultEventMap> {
   >(type?: EventType): void {
     if (type == null) {
       this.#listeners.clear()
-      this.#hookListeners.clear()
+
+      for (const [hookType, hookListener] of this.#hookListeners) {
+        if (!this.#hookListenerOptions.get(hookListener)?.persist) {
+          this.#hookListeners.delete(
+            hookType as keyof EmitterHookMap<EventMap>,
+            hookListener as EmitterHookMap<EventMap>[keyof EmitterHookMap<EventMap>],
+          )
+        }
+      }
+
       return
     }
 
@@ -690,7 +715,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
     insertMode: 'append' | 'prepend' = 'append',
   ): void {
     for (const hook of this.#hookListeners.get('newListener')) {
-      hook(type, listener as Parameters<EmitterHookMap<EventMap>['newListener']>[1], options)
+      hook(
+        type,
+        listener as Parameters<EmitterHookMap<EventMap>['newListener']>[1],
+        options,
+      )
     }
 
     if (type === '*') {

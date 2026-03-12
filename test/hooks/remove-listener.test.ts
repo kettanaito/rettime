@@ -174,3 +174,17 @@ it('removes the hook via emitter.removeAllListeners()', () => {
 
   expect(hook).not.toHaveBeenCalled()
 })
+
+it('persists the hook through emitter.removeAllListeners() if persist is true', () => {
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+  const hook = vi.fn()
+  emitter.hooks.on('removeListener', hook, { persist: true })
+
+  emitter.removeAllListeners()
+
+  const listener = vi.fn()
+  emitter.on('hello', listener)
+  emitter.removeListener('hello', listener)
+
+  expect(hook).toHaveBeenCalledOnce()
+})
