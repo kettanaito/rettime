@@ -141,6 +141,26 @@ it('removes the removeListener hook via hooks.removeListener()', () => {
   expect(hook).not.toHaveBeenCalled()
 })
 
+it('removes the removeListener hook when the hook signal is aborted', () => {
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+  const hook = vi.fn()
+  const controller = new AbortController()
+  emitter.hooks.on('removeListener', hook, { signal: controller.signal })
+
+  const listenerOne = vi.fn()
+  emitter.on('hello', listenerOne)
+  emitter.removeListener('hello', listenerOne)
+  expect(hook).toHaveBeenCalledOnce()
+
+  controller.abort()
+  hook.mockClear()
+
+  const listenerTwo = vi.fn()
+  emitter.on('hello', listenerTwo)
+  emitter.removeListener('hello', listenerTwo)
+  expect(hook).not.toHaveBeenCalled()
+})
+
 it('removes the removeListener hook via emitter.removeAllListeners()', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()

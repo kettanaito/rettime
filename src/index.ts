@@ -357,6 +357,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
     on<HookType extends keyof EmitterHookMap<EventMap>>(
       type: HookType,
       callback: EmitterHookMap<EventMap>[HookType],
+      options?: TypedListenerOptions,
     ): void
     removeListener<HookType extends keyof EmitterHookMap<EventMap>>(
       type: HookType,
@@ -371,8 +372,27 @@ export class Emitter<EventMap extends DefaultEventMap> {
     this.#hookListeners = new LensList()
 
     this.hooks = {
-      on: (hook, callback) => {
+      on: (hook, callback, options) => {
+        if (options?.once) {
+          const original = callback as (...args: Array<any>) => void
+          const wrapper = ((...args: Array<any>) => {
+            this.#hookListeners.delete(hook, wrapper)
+            return original(...args)
+          }) as typeof callback
+          callback = wrapper
+        }
+
         this.#hookListeners.append(hook, callback)
+
+        if (options?.signal) {
+          options.signal.addEventListener(
+            'abort',
+            () => {
+              this.#hookListeners.delete(hook, callback)
+            },
+            { once: true },
+          )
+        }
       },
       removeListener: (hook, callback) => {
         this.#hookListeners.delete(hook, callback)

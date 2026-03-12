@@ -141,6 +141,22 @@ it('removes the newListener hook via hooks.removeListener()', () => {
   expect(hook).not.toHaveBeenCalled()
 })
 
+it('removes the newListener hook when the hook signal is aborted', () => {
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+  const hook = vi.fn()
+  const controller = new AbortController()
+  emitter.hooks.on('newListener', hook, { signal: controller.signal })
+
+  emitter.on('hello', vi.fn())
+  expect(hook).toHaveBeenCalledOnce()
+
+  controller.abort()
+  hook.mockClear()
+
+  emitter.on('hello', vi.fn())
+  expect(hook).not.toHaveBeenCalled()
+})
+
 it('removes the newListener hook via emitter.removeAllListeners()', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
