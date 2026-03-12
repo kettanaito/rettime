@@ -1,6 +1,6 @@
 import { Emitter, TypedEvent } from '#src/index.js'
 
-it('calls the removeListener hook when a listener is removed via .removeListener()', () => {
+it('calls the hook when a listener is removed via .removeListener()', () => {
   const emitter = new Emitter<{
     hello: TypedEvent
     goodbye: TypedEvent
@@ -16,7 +16,7 @@ it('calls the removeListener hook when a listener is removed via .removeListener
   expect(hook).toHaveBeenCalledExactlyOnceWith('hello', listener, undefined)
 })
 
-it('calls the removeListener hook when a once listener is removed after firing', () => {
+it('calls the hook when a once listener is removed after firing', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   emitter.hooks.on('removeListener', hook)
@@ -30,7 +30,7 @@ it('calls the removeListener hook when a once listener is removed after firing',
   })
 })
 
-it('calls the removeListener hook when a listener is removed via signal abort', () => {
+it('calls the hook when a listener is removed via signal abort', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   emitter.hooks.on('removeListener', hook)
@@ -45,7 +45,7 @@ it('calls the removeListener hook when a listener is removed via signal abort', 
   })
 })
 
-it('passes listener options to the removeListener hook', () => {
+it('passes listener options to the hook', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   emitter.hooks.on('removeListener', hook)
@@ -61,7 +61,7 @@ it('passes listener options to the removeListener hook', () => {
   })
 })
 
-it('calls the removeListener hook for every listener removed', () => {
+it('calls the hook for every listener removed', () => {
   const emitter = new Emitter<{
     hello: TypedEvent
     goodbye: TypedEvent
@@ -81,7 +81,7 @@ it('calls the removeListener hook for every listener removed', () => {
   expect(hook).toHaveBeenNthCalledWith(2, 'goodbye', goodbyeListener, undefined)
 })
 
-it('calls multiple removeListener hooks', () => {
+it('calls multiple hooks', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hookOne = vi.fn()
   const hookTwo = vi.fn()
@@ -96,7 +96,7 @@ it('calls multiple removeListener hooks', () => {
   expect(hookTwo).toHaveBeenCalledOnce()
 })
 
-it('calls the removeListener hook when a wildcard listener is removed', () => {
+it('calls the hook when a wildcard listener is removed', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   emitter.hooks.on('removeListener', hook)
@@ -108,7 +108,7 @@ it('calls the removeListener hook when a wildcard listener is removed', () => {
   expect(hook).toHaveBeenCalledExactlyOnceWith('*', listener, undefined)
 })
 
-it('fires the removeListener hook after the listener is removed', () => {
+it('fires the hook after the listener is removed', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const listenerCounts: Array<number> = []
 
@@ -128,7 +128,7 @@ it('fires the removeListener hook after the listener is removed', () => {
   expect(listenerCounts).toEqual([1, 0])
 })
 
-it('removes the removeListener hook via hooks.removeListener()', () => {
+it('removes the hook via hooks.removeListener()', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   emitter.hooks.on('removeListener', hook)
@@ -141,7 +141,7 @@ it('removes the removeListener hook via hooks.removeListener()', () => {
   expect(hook).not.toHaveBeenCalled()
 })
 
-it('removes the removeListener hook when the hook signal is aborted', () => {
+it('removes the hook when the hook signal is aborted', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   const controller = new AbortController()
@@ -161,7 +161,7 @@ it('removes the removeListener hook when the hook signal is aborted', () => {
   expect(hook).not.toHaveBeenCalled()
 })
 
-it('removes the removeListener hook via emitter.removeAllListeners()', () => {
+it('removes the hook via emitter.removeAllListeners()', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   emitter.hooks.on('removeListener', hook)
