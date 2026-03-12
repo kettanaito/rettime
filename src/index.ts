@@ -134,6 +134,17 @@ export type EmitterHookMap<EventMap extends DefaultEventMap> = {
     }[keyof WithReservedEvents<EventMap> & string],
     options: TypedListenerOptions | undefined,
   ) => void
+  removeListener: (
+    type: keyof WithReservedEvents<EventMap> & string,
+    listener: {
+      [K in keyof WithReservedEvents<EventMap> & string]: Emitter.Listener<
+        Emitter<EventMap>,
+        K,
+        WithReservedEvents<EventMap>
+      >
+    }[keyof WithReservedEvents<EventMap> & string],
+    options: TypedListenerOptions | undefined,
+  ) => void
 }
 
 export namespace Emitter {
@@ -585,7 +596,13 @@ export class Emitter<EventMap extends DefaultEventMap> {
       WithReservedEvents<EventMap>
     >,
   ): void {
+    const options = this.#listenerOptions.get(listener)
+
     this.#listeners.delete(type, listener)
+
+    for (const handler of this.#hookListeners.get('removeListener')) {
+      handler(type, listener, options)
+    }
   }
 
   /**
@@ -697,9 +714,14 @@ export class Emitter<EventMap extends DefaultEventMap> {
   #callListener(event: Event, listener: (event: any) => any) {
     const returnValue = listener.call(this, event)
 
-    if (this.#listenerOptions.get(listener)?.once) {
+    const options = this.#listenerOptions.get(listener)
+    if (options?.once) {
       const key = this.#isTypelessListener(listener) ? '*' : event.type
       this.#listeners.delete(key, listener)
+
+      for (const handler of this.#hookListeners.get('removeListener')) {
+        handler(key, listener, options)
+      }
     }
 
     return returnValue
