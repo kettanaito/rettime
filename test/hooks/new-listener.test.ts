@@ -1,6 +1,6 @@
 import { Emitter, TypedEvent } from '#src/index.js'
 
-it('calls the newListener hook when a listener is added via .on()', () => {
+it('calls the hook when a listener is added via .on()', () => {
   const emitter = new Emitter<{
     hello: TypedEvent
     goodbye: TypedEvent
@@ -19,7 +19,7 @@ it('calls the newListener hook when a listener is added via .on()', () => {
   )
 })
 
-it('calls the newListener hook when a listener is added via .once()', () => {
+it('calls the hook when a listener is added via .once()', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   emitter.hooks.on('newListener', hook)
@@ -56,7 +56,7 @@ it('calls the newListener hook when a listener is added via .earlyOnce()', () =>
   })
 })
 
-it('calls the newListener hook for every listener added', () => {
+it('calls the hook for every listener added', () => {
   const emitter = new Emitter<{
     hello: TypedEvent
     goodbye: TypedEvent
@@ -74,7 +74,7 @@ it('calls the newListener hook for every listener added', () => {
   expect(hook).toHaveBeenNthCalledWith(2, 'goodbye', goodbyeListener, undefined)
 })
 
-it('calls multiple newListener hooks', () => {
+it('calls multiple hooks', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hookOne = vi.fn()
   const hookTwo = vi.fn()
@@ -88,7 +88,7 @@ it('calls multiple newListener hooks', () => {
   expect(hookTwo).toHaveBeenCalledOnce()
 })
 
-it('calls the newListener hook when a wildcard listener is added', () => {
+it('calls the hook when a wildcard listener is added', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   emitter.hooks.on('newListener', hook)
@@ -99,7 +99,7 @@ it('calls the newListener hook when a wildcard listener is added', () => {
   expect(hook).toHaveBeenCalledExactlyOnceWith('*', listener, undefined)
 })
 
-it('fires the newListener hook before the listener is added', () => {
+it('fires the hook before the listener is added', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const listenerCounts: Array<number> = []
 
@@ -115,7 +115,7 @@ it('fires the newListener hook before the listener is added', () => {
   expect(listenerCounts).toEqual([0, 1])
 })
 
-it('exposes listener options in the newListener hook', () => {
+it('exposes listener options in the hook', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   emitter.hooks.on('newListener', hook)
@@ -130,7 +130,7 @@ it('exposes listener options in the newListener hook', () => {
   })
 })
 
-it('removes the newListener hook via hooks.removeListener()', () => {
+it('removes the hook via hooks.removeListener()', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   emitter.hooks.on('newListener', hook)
@@ -141,7 +141,7 @@ it('removes the newListener hook via hooks.removeListener()', () => {
   expect(hook).not.toHaveBeenCalled()
 })
 
-it('removes the newListener hook when the hook signal is aborted', () => {
+it('removes the hook when the hook signal is aborted', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   const controller = new AbortController()
@@ -157,7 +157,7 @@ it('removes the newListener hook when the hook signal is aborted', () => {
   expect(hook).not.toHaveBeenCalled()
 })
 
-it('removes the newListener hook via emitter.removeAllListeners()', () => {
+it('removes the hook via emitter.removeAllListeners()', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()
   emitter.hooks.on('newListener', hook)
@@ -166,4 +166,15 @@ it('removes the newListener hook via emitter.removeAllListeners()', () => {
   emitter.on('hello', vi.fn())
 
   expect(hook).not.toHaveBeenCalled()
+})
+
+it('persists the hook through emitter.removeAllListeners() if persist is true', () => {
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+  const hook = vi.fn()
+  emitter.hooks.on('newListener', hook, { persist: true })
+
+  emitter.removeAllListeners()
+  emitter.on('hello', vi.fn())
+
+  expect(hook).toHaveBeenCalledOnce()
 })

@@ -1,6 +1,8 @@
-export class LensList<T> {
-  #list: Array<[string, T]>
-  #lens: Map<string, Array<T>>
+type Values<M> = M[keyof M & string]
+
+export class LensList<ValueMap extends Record<string, any>> {
+  #list: Array<[string, Values<ValueMap>]>
+  #lens: Map<string, Array<Values<ValueMap>>>
 
   constructor() {
     this.#list = []
@@ -19,21 +21,24 @@ export class LensList<T> {
   /**
    * Return an order-sensitive list of values by the given key.
    */
-  public get(key: string): Array<T> {
-    return this.#lens.get(key) || []
+  public get<K extends keyof ValueMap & string>(key: K): Array<ValueMap[K]> {
+    return (this.#lens.get(key) || []) as Array<ValueMap[K]>
   }
 
   /**
    * Return an order-sensitive list of all values.
    */
-  public getAll(): Array<T> {
+  public getAll(): Array<Values<ValueMap>> {
     return this.#list.map(([, value]) => value)
   }
 
   /**
    * Append a new value to the given key.
    */
-  public append(key: string, value: T): void {
+  public append<K extends keyof ValueMap & string>(
+    key: K,
+    value: ValueMap[K],
+  ): void {
     this.#list.push([key, value])
     this.#openLens(key, (list) => list.push(value))
   }
@@ -41,7 +46,10 @@ export class LensList<T> {
   /**
    * Prepend a new value to the given key.
    */
-  public prepend(key: string, value: T): void {
+  public prepend<K extends keyof ValueMap & string>(
+    key: K,
+    value: ValueMap[K],
+  ): void {
     this.#list.unshift([key, value])
     this.#openLens(key, (list) => list.unshift(value))
   }
@@ -49,7 +57,10 @@ export class LensList<T> {
   /**
    * Delete the value belonging to the given key.
    */
-  public delete(key: string, value: T): void {
+  public delete<K extends keyof ValueMap & string>(
+    key: K,
+    value: ValueMap[K],
+  ): void {
     if (this.size === 0) {
       return
     }
@@ -68,7 +79,7 @@ export class LensList<T> {
   /**
    * Delete all values belogning to the given key.
    */
-  public deleteAll(key: string): void {
+  public deleteAll<K extends keyof ValueMap & string>(key: K): void {
     if (this.size === 0) {
       return
     }
@@ -90,7 +101,10 @@ export class LensList<T> {
     this.#lens.clear()
   }
 
-  #openLens(key: string, setter: (target: Array<T>) => void): void {
+  #openLens(
+    key: string,
+    setter: (target: Array<Values<ValueMap>>) => void,
+  ): void {
     setter(this.#lens.get(key) || this.#lens.set(key, []).get(key))
   }
 }
