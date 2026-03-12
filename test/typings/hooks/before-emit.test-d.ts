@@ -59,37 +59,12 @@ it('infers the event type for events without data', () => {
   })
 })
 
-it('allows returning boolean to control emission', () => {
+it('has the correct call signature', () => {
   const emitter = new Emitter<{
     greeting: TypedEvent<string>
   }>()
 
-  emitter.hooks.on('beforeEmit', (event) => {
-    return false
-  })
-
-  emitter.hooks.on('beforeEmit', (event) => {
-    return true
-  })
-})
-
-it('allows returning void', () => {
-  const emitter = new Emitter<{
-    greeting: TypedEvent<string>
-  }>()
-
-  emitter.hooks.on('beforeEmit', (event) => {
-    // no return
-  })
-})
-
-it('infers the return type as boolean or void', () => {
-  const emitter = new Emitter<{
-    greeting: TypedEvent<string>
-  }>()
-
-  emitter.hooks.on('beforeEmit', (event) => {
-    expectTypeOf<typeof event>().toEqualTypeOf<TypedEvent<string>>()
-    return false as boolean | void
-  })
+  expectTypeOf(emitter.hooks.on<'beforeEmit'>)
+    .parameter(1)
+    .toEqualTypeOf<(event: TypedEvent<string>) => boolean | void>()
 })
