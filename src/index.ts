@@ -839,13 +839,25 @@ export class Emitter<EventMap extends DefaultEventMap> {
   /**
    * Return a list of all event listeners relevant for the given event type.
    * This includes the explicit event listeners and also typeless event listeners.
+   *
+   * @note Snapshot the matching listeners before yielding. Listeners can add or
+   * remove other listeners during emission (e.g. `earlyOn` unshifts `#list`),
+   * which would otherwise shift the live iterator and re-yield prior entries.
    */
   *#matchListeners<EventType extends keyof EventMap & string>(type: EventType) {
+    const snapshot: Array<
+      Emitter.Listener<
+        typeof this,
+        keyof WithReservedEvents<EventMap> & string,
+        WithReservedEvents<EventMap>
+      >
+    > = []
     for (const [key, listener] of this.#listeners) {
       if (key === '*' || key === type) {
-        yield listener
+        snapshot.push(listener)
       }
     }
+    yield* snapshot
   }
 
   #isTypelessListener(listener: any): boolean {
