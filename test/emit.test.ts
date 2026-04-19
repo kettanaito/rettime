@@ -120,3 +120,19 @@ it('returns false for a custom event without any listeners', () => {
 
   expect(emitter.emit(new CustomEvent('foo'))).toBe(false)
 })
+
+it('does not re-invoke the current listener when it prepends a listener for a different event', () => {
+  const emitter = new Emitter<{
+    foo: TypedEvent
+    bar: TypedEvent
+  }>()
+
+  const fooListener = vi.fn(() => {
+    emitter.earlyOn('bar', vi.fn())
+  })
+
+  emitter.on('foo', fooListener)
+  emitter.emit(new TypedEvent('foo'))
+
+  expect(fooListener).toHaveBeenCalledTimes(1)
+})
