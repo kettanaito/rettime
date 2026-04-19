@@ -359,10 +359,12 @@ export class Emitter<EventMap extends DefaultEventMap> {
   >
 
   #listenerOptions: WeakMap<Function, TypedListenerOptions>
+  #listenerAbortCleanups: WeakMap<Function, () => void>
   #typelessListeners: WeakSet<Function>
 
   #hookListeners: LensList<EmitterHookMap<EventMap>>
   #hookListenerOptions: WeakMap<Function, HookListenerOptions>
+  #hookListenerAbortCleanups: WeakMap<Function, () => void>
 
   public readonly hooks: {
     on<HookType extends keyof EmitterHookMap<EventMap>>(
@@ -381,16 +383,18 @@ export class Emitter<EventMap extends DefaultEventMap> {
   constructor() {
     this.#listeners = new LensList()
     this.#listenerOptions = new WeakMap()
+    this.#listenerAbortCleanups = new WeakMap()
     this.#typelessListeners = new WeakSet()
     this.#hookListeners = new LensList()
     this.#hookListenerOptions = new WeakMap()
+    this.#hookListenerAbortCleanups = new WeakMap()
 
     this.hooks = {
       on: (hook, callback, options) => {
         if (options?.once) {
           const original = callback as (...args: Array<any>) => void
           const wrapper = ((...args: Array<any>) => {
-            this.#hookListeners.delete(hook, wrapper)
+            this.#deleteHookListener(hook, wrapper)
             return original(...args)
           }) as typeof callback
           callback = wrapper
@@ -403,18 +407,47 @@ export class Emitter<EventMap extends DefaultEventMap> {
         }
 
         if (options?.signal) {
-          options.signal.addEventListener(
-            'abort',
-            () => {
-              this.#hookListeners.delete(hook, callback)
-            },
-            { once: true },
-          )
+          const { signal } = options
+          const onAbort = () => {
+            this.#deleteHookListener(hook, callback)
+          }
+          signal.addEventListener('abort', onAbort, { once: true })
+          this.#hookListenerAbortCleanups.set(callback, () => {
+            signal.removeEventListener('abort', onAbort)
+          })
         }
       },
       removeListener: (hook, callback) => {
-        this.#hookListeners.delete(hook, callback)
+        this.#deleteHookListener(hook, callback)
       },
+    }
+  }
+
+  #deleteHookListener<HookType extends keyof EmitterHookMap<EventMap>>(
+    hook: HookType,
+    callback: EmitterHookMap<EventMap>[HookType],
+  ): void {
+    this.#hookListeners.delete(hook, callback)
+    const cleanup = this.#hookListenerAbortCleanups.get(callback)
+    if (cleanup) {
+      cleanup()
+      this.#hookListenerAbortCleanups.delete(callback)
+    }
+  }
+
+  #deleteListener<EventType extends keyof WithReservedEvents<EventMap> & string>(
+    type: EventType,
+    listener: Emitter.Listener<
+      typeof this,
+      EventType,
+      WithReservedEvents<EventMap>
+    >,
+  ): void {
+    this.#listeners.delete(type, listener)
+    const cleanup = this.#listenerAbortCleanups.get(listener)
+    if (cleanup) {
+      cleanup()
+      this.#listenerAbortCleanups.delete(listener)
     }
   }
 
@@ -636,7 +669,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
   ): void {
     const options = this.#listenerOptions.get(listener)
 
-    this.#listeners.delete(type, listener)
+    this.#deleteListener(type, listener)
 
     for (const hook of this.#hookListeners.get('removeListener')) {
       hook(
@@ -655,11 +688,18 @@ export class Emitter<EventMap extends DefaultEventMap> {
     EventType extends keyof WithReservedEvents<EventMap> & string,
   >(type?: EventType): void {
     if (type == null) {
+      for (const listener of this.#listeners.getAll()) {
+        const cleanup = this.#listenerAbortCleanups.get(listener)
+        if (cleanup) {
+          cleanup()
+          this.#listenerAbortCleanups.delete(listener)
+        }
+      }
       this.#listeners.clear()
 
       for (const [hookType, hookListener] of this.#hookListeners) {
         if (!this.#hookListenerOptions.get(hookListener)?.persist) {
-          this.#hookListeners.delete(
+          this.#deleteHookListener(
             hookType as keyof EmitterHookMap<EventMap>,
             hookListener as EmitterHookMap<EventMap>[keyof EmitterHookMap<EventMap>],
           )
@@ -669,6 +709,13 @@ export class Emitter<EventMap extends DefaultEventMap> {
       return
     }
 
+    for (const listener of this.#listeners.get(type)) {
+      const cleanup = this.#listenerAbortCleanups.get(listener)
+      if (cleanup) {
+        cleanup()
+        this.#listenerAbortCleanups.delete(listener)
+      }
+    }
     this.#listeners.deleteAll(type)
   }
 
@@ -736,13 +783,14 @@ export class Emitter<EventMap extends DefaultEventMap> {
       this.#listenerOptions.set(listener, options)
 
       if (options.signal) {
-        options.signal.addEventListener(
-          'abort',
-          () => {
-            this.removeListener(type, listener)
-          },
-          { once: true },
-        )
+        const { signal } = options
+        const onAbort = () => {
+          this.removeListener(type, listener)
+        }
+        signal.addEventListener('abort', onAbort, { once: true })
+        this.#listenerAbortCleanups.set(listener, () => {
+          signal.removeEventListener('abort', onAbort)
+        })
       }
     }
   }
@@ -778,7 +826,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
     if (options?.once) {
       const type = this.#isTypelessListener(listener) ? '*' : event.type
-      this.#listeners.delete(type, listener)
+      this.#deleteListener(type, listener)
 
       for (const hook of this.#hookListeners.get('removeListener')) {
         hook(type, listener, options)
