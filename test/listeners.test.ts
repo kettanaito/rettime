@@ -30,3 +30,26 @@ it('returns the list of listeners for a specific event type', () => {
   expect(emitter.listeners('test')).toEqual([firstListenerOne, firstListnerTwo])
   expect(emitter.listeners('other')).toEqual([expect.any(Function)])
 })
+
+it('removeListener removes only one occurrence of a duplicate listener', () => {
+  const emitter = new Emitter()
+  const listener = () => {}
+  emitter.on('test', listener)
+  emitter.on('test', listener)
+
+  emitter.removeListener('test', listener)
+  expect(emitter.listeners('test')).toEqual([listener])
+
+  emitter.removeListener('test', listener)
+  expect(emitter.listeners('test')).toEqual([])
+})
+
+it('removeAllListeners drains a duplicate listener without infinite-looping', { timeout: 1000 }, () => {
+  const emitter = new Emitter()
+  const listener = () => {}
+  emitter.on('test', listener)
+  emitter.on('test', listener)
+
+  emitter.removeAllListeners('test')
+  expect(emitter.listeners('test')).toEqual([])
+})

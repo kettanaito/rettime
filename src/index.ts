@@ -714,7 +714,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
         }
       }
 
-      for (const [hookType, hookListener] of this.#hookListeners) {
+      for (const [hookType, hookListener] of [...this.#hookListeners]) {
         if (!this.#hookListenerOptions.get(hookListener)?.persist) {
           this.#deleteHookListener(
             hookType as keyof EmitterHookMap<EventMap>,
