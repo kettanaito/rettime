@@ -102,6 +102,39 @@ it('unsubscribes from the signal when removeAllListeners() is called', () => {
   expect(removeHook).toHaveBeenCalledTimes(2)
 })
 
+it('does not register the listener when the signal is already aborted', () => {
+  const emitter = new Emitter<{ greeting: TypedEvent<string> }>()
+  const newHook = vi.fn()
+  const removeHook = vi.fn()
+  emitter.hooks.on('newListener', newHook)
+  emitter.hooks.on('removeListener', removeHook)
+
+  const controller = new AbortController()
+  controller.abort()
+
+  const listener = vi.fn()
+  emitter.on('greeting', listener, { signal: controller.signal })
+
+  expect(emitter.listenerCount('greeting')).toBe(0)
+  expect(newHook).not.toHaveBeenCalled()
+  expect(removeHook).not.toHaveBeenCalled()
+  expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0)
+})
+
+it('does not register the hook when the hook signal is already aborted', () => {
+  const emitter = new Emitter<{ greeting: TypedEvent<string> }>()
+  const controller = new AbortController()
+  controller.abort()
+
+  const hook = vi.fn()
+  emitter.hooks.on('beforeEmit', hook, { signal: controller.signal })
+
+  emitter.emit(new TypedEvent('greeting', { data: 'John' }))
+
+  expect(hook).not.toHaveBeenCalled()
+  expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0)
+})
+
 it('unsubscribes from the signal when a hook listener is removed', () => {
   const emitter = new Emitter<{ greeting: TypedEvent<string> }>()
   const controller = new AbortController()

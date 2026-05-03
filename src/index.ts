@@ -391,6 +391,14 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
     this.hooks = {
       on: (hook, callback, options) => {
+        /**
+         * @note An already-aborted signal would never fire its 'abort' event,
+         * leaving the hook registered indefinitely. Skip registration entirely.
+         */
+        if (options?.signal?.aborted) {
+          return
+        }
+
         if (options?.once) {
           const original = callback as (...args: Array<any>) => void
           const wrapper = ((...args: Array<any>) => {
@@ -763,6 +771,14 @@ export class Emitter<EventMap extends DefaultEventMap> {
     options: TypedListenerOptions | undefined,
     insertMode: 'append' | 'prepend' = 'append',
   ): void {
+    /**
+     * @note An already-aborted signal would never fire its 'abort' event,
+     * leaving the listener registered indefinitely. Skip registration entirely.
+     */
+    if (options?.signal?.aborted) {
+      return
+    }
+
     for (const hook of this.#hookListeners.get('newListener')) {
       hook(
         type,
