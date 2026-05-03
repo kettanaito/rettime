@@ -655,7 +655,14 @@ export class Emitter<EventMap extends DefaultEventMap> {
     EventType extends keyof WithReservedEvents<EventMap> & string,
   >(type?: EventType): void {
     if (type == null) {
-      this.#listeners.clear()
+      for (const [listenerType, listeners] of this.#listeners.entries()) {
+        while (listeners.length > 0) {
+          this.removeListener(
+            listenerType as keyof WithReservedEvents<EventMap> & string,
+            listeners[0],
+          )
+        }
+      }
 
       for (const [hookType, hookListener] of this.#hookListeners) {
         if (!this.#hookListenerOptions.get(hookListener)?.persist) {
@@ -669,7 +676,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
       return
     }
 
-    this.#listeners.deleteAll(type)
+    const listeners = this.listeners(type)
+
+    while (listeners.length > 0) {
+      this.removeListener(type, listeners[0])
+    }
   }
 
   /**
