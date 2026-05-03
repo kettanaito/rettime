@@ -75,6 +75,22 @@ it('deletes a value from the key', () => {
   expect.soft(list.getAll()).toEqual([])
 })
 
+it('deletes only one entry when the same value is appended twice under the same key', () => {
+  const list = new LensList()
+  list.append('a', 'one')
+  list.append('a', 'one')
+
+  expect.soft(list.delete('a', 'one')).toBe(true)
+  expect.soft(list.size).toBe(1)
+  expect.soft(list.get('a')).toEqual(['one'])
+  expect.soft(list.getAll()).toEqual(['one'])
+
+  expect.soft(list.delete('a', 'one')).toBe(true)
+  expect.soft(list.size).toBe(0)
+  expect.soft(list.get('a')).toEqual([])
+  expect.soft(list.getAll()).toEqual([])
+})
+
 it('deletes all values from the key', () => {
   const list = new LensList()
   list.append('a', 'one')

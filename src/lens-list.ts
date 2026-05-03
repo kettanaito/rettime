@@ -77,7 +77,12 @@ export class LensList<ValueMap extends Record<string, any>> {
     }
 
     values.splice(index, 1)
-    this.#list = this.#list.filter((item) => item[1] !== value)
+    this.#list.splice(
+      this.#list.findIndex(
+        (item) => item[0] === key && item[1] === value,
+      ),
+      1,
+    )
     return true
   }
 
