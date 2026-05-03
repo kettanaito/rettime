@@ -115,6 +115,22 @@ it('fires the hook before the listener is added', () => {
   expect(listenerCounts).toEqual([0, 1])
 })
 
+it('does not skip hooks when an earlier hook removes a later one', () => {
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+  const hookTwo = vi.fn()
+  const hookOne = vi.fn(() => {
+    emitter.hooks.removeListener('newListener', hookTwo)
+  })
+
+  emitter.hooks.on('newListener', hookOne)
+  emitter.hooks.on('newListener', hookTwo)
+
+  emitter.on('hello', vi.fn())
+
+  expect(hookOne).toHaveBeenCalledOnce()
+  expect(hookTwo).toHaveBeenCalledOnce()
+})
+
 it('exposes listener options in the hook', () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
   const hook = vi.fn()

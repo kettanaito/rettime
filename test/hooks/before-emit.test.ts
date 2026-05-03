@@ -55,6 +55,23 @@ it('persists the hook through emitter.removeAllListeners() if persist is true', 
   expect(beforeEmitHook).toHaveBeenCalledExactlyOnceWith(event)
 })
 
+it('does not skip hooks when an earlier hook removes a later one', () => {
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+  const hookTwo = vi.fn()
+  const hookOne = vi.fn(() => {
+    emitter.hooks.removeListener('beforeEmit', hookTwo)
+  })
+
+  emitter.hooks.on('beforeEmit', hookOne)
+  emitter.hooks.on('beforeEmit', hookTwo)
+
+  emitter.on('hello', vi.fn())
+  emitter.emit(new TypedEvent('hello'))
+
+  expect(hookOne).toHaveBeenCalledOnce()
+  expect(hookTwo).toHaveBeenCalledOnce()
+})
+
 it('prevents event from being emitted if the hook returns false', () => {
   const emitter = new Emitter<{ hello: TypedEvent; goodbye: TypedEvent }>()
 

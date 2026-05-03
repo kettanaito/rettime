@@ -151,6 +151,24 @@ it('does not re-fire the hook when the same listener is removed twice', () => {
   expect(hook).toHaveBeenCalledOnce()
 })
 
+it('does not skip hooks when an earlier hook removes a later one', () => {
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+  const hookTwo = vi.fn()
+  const hookOne = vi.fn(() => {
+    emitter.hooks.removeListener('removeListener', hookTwo)
+  })
+
+  emitter.hooks.on('removeListener', hookOne)
+  emitter.hooks.on('removeListener', hookTwo)
+
+  const listener = vi.fn()
+  emitter.on('hello', listener)
+  emitter.removeListener('hello', listener)
+
+  expect(hookOne).toHaveBeenCalledOnce()
+  expect(hookTwo).toHaveBeenCalledOnce()
+})
+
 it('does not call the hook when removing a listener registered for another type', () => {
   const emitter = new Emitter<{ hello: TypedEvent; goodbye: TypedEvent }>()
   const hook = vi.fn()

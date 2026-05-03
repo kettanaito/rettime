@@ -684,7 +684,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
       return
     }
 
-    for (const hook of this.#hookListeners.get('removeListener')) {
+    /**
+     * @note Snapshot the hook list before iterating so a hook that removes
+     * another `removeListener` hook can't shift the live array mid-iteration.
+     */
+    for (const hook of this.#hookListeners.get('removeListener').slice()) {
       hook(
         type,
         listener as Parameters<EmitterHookMap<EventMap>['removeListener']>[1],
@@ -779,7 +783,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
       return
     }
 
-    for (const hook of this.#hookListeners.get('newListener')) {
+    for (const hook of this.#hookListeners.get('newListener').slice()) {
       hook(
         type,
         listener as Parameters<EmitterHookMap<EventMap>['newListener']>[1],
@@ -832,7 +836,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
   }
 
   #callListener(event: Event, listener: (event: any) => any) {
-    for (const hook of this.#hookListeners.get('beforeEmit')) {
+    for (const hook of this.#hookListeners.get('beforeEmit').slice()) {
       if (hook(event as EventMap[keyof EventMap & string]) === false) {
         return
       }
@@ -846,7 +850,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
       const type = this.#isTypelessListener(listener) ? '*' : event.type
 
       if (this.#deleteListener(type, listener)) {
-        for (const hook of this.#hookListeners.get('removeListener')) {
+        for (const hook of this.#hookListeners.get('removeListener').slice()) {
           hook(type, listener, options)
         }
       }
