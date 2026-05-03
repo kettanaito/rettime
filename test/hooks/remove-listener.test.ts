@@ -92,8 +92,8 @@ it('calls multiple hooks', () => {
   emitter.on('hello', listener)
   emitter.removeListener('hello', listener)
 
-  expect(hookOne).toHaveBeenCalledOnce()
-  expect(hookTwo).toHaveBeenCalledOnce()
+  expect(hookOne).toHaveBeenCalledExactlyOnceWith('hello', listener, undefined)
+  expect(hookTwo).toHaveBeenCalledExactlyOnceWith('hello', listener, undefined)
 })
 
 it('calls the hook when a wildcard listener is removed', () => {
@@ -126,6 +126,41 @@ it('fires the hook after the listener is removed', () => {
   // The hook fires after the listener is removed,
   // so the count is 1 when removing the first, 0 when removing the second.
   expect(listenerCounts).toEqual([1, 0])
+})
+
+it('does not call the hook when removing a listener that was never registered', () => {
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+  const hook = vi.fn()
+  emitter.hooks.on('removeListener', hook)
+
+  emitter.removeListener('hello', vi.fn())
+
+  expect(hook).not.toHaveBeenCalled()
+})
+
+it('does not re-fire the hook when the same listener is removed twice', () => {
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+  const hook = vi.fn()
+  emitter.hooks.on('removeListener', hook)
+
+  const listener = vi.fn()
+  emitter.on('hello', listener)
+  emitter.removeListener('hello', listener)
+  emitter.removeListener('hello', listener)
+
+  expect(hook).toHaveBeenCalledOnce()
+})
+
+it('does not call the hook when removing a listener registered for another type', () => {
+  const emitter = new Emitter<{ hello: TypedEvent; goodbye: TypedEvent }>()
+  const hook = vi.fn()
+  emitter.hooks.on('removeListener', hook)
+
+  const listener = vi.fn()
+  emitter.on('hello', listener)
+  emitter.removeListener('goodbye', listener)
+
+  expect(hook).not.toHaveBeenCalled()
 })
 
 it('removes the hook via hooks.removeListener()', () => {
@@ -186,5 +221,39 @@ it('persists the hook through emitter.removeAllListeners() if persist is true', 
   emitter.on('hello', listener)
   emitter.removeListener('hello', listener)
 
-  expect(hook).toHaveBeenCalledOnce()
+  expect(hook).toHaveBeenCalledExactlyOnceWith('hello', listener, undefined)
+})
+
+it('calls the hook when removing all listeners of a given type', () => {
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+  const hook = vi.fn()
+  emitter.hooks.on('removeListener', hook)
+
+  const listenerOne = vi.fn()
+  emitter.on('hello', listenerOne)
+  const listenerTwo = vi.fn()
+  emitter.on('hello', listenerTwo)
+
+  emitter.removeAllListeners('hello')
+
+  expect.soft(hook).toHaveBeenCalledTimes(2)
+  expect.soft(hook).toHaveBeenNthCalledWith(1, 'hello', listenerOne, undefined)
+  expect.soft(hook).toHaveBeenNthCalledWith(2, 'hello', listenerTwo, undefined)
+})
+
+it('calls the hook when removing all listeners', () => {
+  const emitter = new Emitter<{ hello: TypedEvent }>()
+  const hook = vi.fn()
+  emitter.hooks.on('removeListener', hook)
+
+  const listenerOne = vi.fn()
+  emitter.on('hello', listenerOne)
+  const listenerTwo = vi.fn()
+  emitter.on('hello', listenerTwo)
+
+  emitter.removeAllListeners()
+
+  expect.soft(hook).toHaveBeenCalledTimes(2)
+  expect.soft(hook).toHaveBeenNthCalledWith(1, 'hello', listenerOne, undefined)
+  expect.soft(hook).toHaveBeenNthCalledWith(2, 'hello', listenerTwo, undefined)
 })

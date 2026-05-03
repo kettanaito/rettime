@@ -92,9 +92,14 @@ it('unsubscribes from the signal when removeAllListeners() is called', () => {
   emitter.on('greeting', vi.fn(), { signal: controller.signal })
   emitter.removeAllListeners()
 
+  // The hook fires once per removed listener.
+  expect(removeHook).toHaveBeenCalledTimes(2)
+
   controller.abort()
 
-  expect(removeHook).not.toHaveBeenCalled()
+  // The abort must not re-trigger the hook because the
+  // signal subscriptions were cleaned up on removal.
+  expect(removeHook).toHaveBeenCalledTimes(2)
 })
 
 it('unsubscribes from the signal when a hook listener is removed', () => {

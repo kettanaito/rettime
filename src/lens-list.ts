@@ -56,24 +56,29 @@ export class LensList<ValueMap extends Record<string, any>> {
 
   /**
    * Delete the value belonging to the given key.
+   * Returns `true` if the value was present and removed, `false` otherwise.
    */
   public delete<K extends keyof ValueMap & string>(
     key: K,
     value: ValueMap[K],
-  ): void {
+  ): boolean {
     if (this.size === 0) {
-      return
+      return false
     }
-
-    this.#list = this.#list.filter((item) => item[1] !== value)
 
     const values = this.#lens.get(key)
-    if (values) {
-      const index = values.indexOf(value)
-      if (index !== -1) {
-        values.splice(index, 1)
-      }
+    if (!values) {
+      return false
     }
+
+    const index = values.indexOf(value)
+    if (index === -1) {
+      return false
+    }
+
+    values.splice(index, 1)
+    this.#list = this.#list.filter((item) => item[1] !== value)
+    return true
   }
 
   /**

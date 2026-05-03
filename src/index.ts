@@ -435,20 +435,23 @@ export class Emitter<EventMap extends DefaultEventMap> {
     }
   }
 
-  #deleteListener<EventType extends keyof WithReservedEvents<EventMap> & string>(
+  #deleteListener<
+    EventType extends keyof WithReservedEvents<EventMap> & string,
+  >(
     type: EventType,
     listener: Emitter.Listener<
       typeof this,
       EventType,
       WithReservedEvents<EventMap>
     >,
-  ): void {
-    this.#listeners.delete(type, listener)
+  ): boolean {
+    const removed = this.#listeners.delete(type, listener)
     const cleanup = this.#listenerAbortCleanups.get(listener)
     if (cleanup) {
       cleanup()
       this.#listenerAbortCleanups.delete(listener)
     }
+    return removed
   }
 
   /**
@@ -669,7 +672,9 @@ export class Emitter<EventMap extends DefaultEventMap> {
   ): void {
     const options = this.#listenerOptions.get(listener)
 
-    this.#deleteListener(type, listener)
+    if (!this.#deleteListener(type, listener)) {
+      return
+    }
 
     for (const hook of this.#hookListeners.get('removeListener')) {
       hook(
@@ -688,14 +693,14 @@ export class Emitter<EventMap extends DefaultEventMap> {
     EventType extends keyof WithReservedEvents<EventMap> & string,
   >(type?: EventType): void {
     if (type == null) {
-      for (const listener of this.#listeners.getAll()) {
-        const cleanup = this.#listenerAbortCleanups.get(listener)
-        if (cleanup) {
-          cleanup()
-          this.#listenerAbortCleanups.delete(listener)
+      for (const [listenerType, listeners] of this.#listeners.entries()) {
+        while (listeners.length > 0) {
+          this.removeListener(
+            listenerType as keyof WithReservedEvents<EventMap> & string,
+            listeners[0],
+          )
         }
       }
-      this.#listeners.clear()
 
       for (const [hookType, hookListener] of this.#hookListeners) {
         if (!this.#hookListenerOptions.get(hookListener)?.persist) {
@@ -709,14 +714,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
       return
     }
 
-    for (const listener of this.#listeners.get(type)) {
-      const cleanup = this.#listenerAbortCleanups.get(listener)
-      if (cleanup) {
-        cleanup()
-        this.#listenerAbortCleanups.delete(listener)
-      }
+    const listeners = this.listeners(type)
+
+    while (listeners.length > 0) {
+      this.removeListener(type, listeners[0])
     }
-    this.#listeners.deleteAll(type)
   }
 
   /**
@@ -826,10 +828,11 @@ export class Emitter<EventMap extends DefaultEventMap> {
 
     if (options?.once) {
       const type = this.#isTypelessListener(listener) ? '*' : event.type
-      this.#deleteListener(type, listener)
 
-      for (const hook of this.#hookListeners.get('removeListener')) {
-        hook(type, listener, options)
+      if (this.#deleteListener(type, listener)) {
+        for (const hook of this.#hookListeners.get('removeListener')) {
+          hook(type, listener, options)
+        }
       }
     }
 
