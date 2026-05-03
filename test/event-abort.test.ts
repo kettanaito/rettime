@@ -1,3 +1,4 @@
+import { getEventListeners } from 'node:events'
 import { Emitter, TypedEvent } from '#src/index.js'
 
 it('(on) supports aborting a listener by providing it a custom `AbortController`', () => {
@@ -47,4 +48,68 @@ it('(earlyOnce) supports aborting a listener by providing it a custom `AbortCont
   emitter.emit(new TypedEvent('greeting', { data: 'John' }))
 
   expect(listener).not.toHaveBeenCalled()
+})
+
+it('unsubscribes from the signal once the listener is manually removed', () => {
+  const emitter = new Emitter<{ greeting: TypedEvent<string> }>()
+  const removeHook = vi.fn()
+  emitter.hooks.on('removeListener', removeHook)
+
+  const controller = new AbortController()
+  const listener = vi.fn()
+  emitter.on('greeting', listener, { signal: controller.signal })
+  emitter.removeListener('greeting', listener)
+
+  controller.abort()
+
+  // The hook must fire once for the manual remove; the abort
+  // must not re-trigger it because the subscription was cleaned up.
+  expect(removeHook).toHaveBeenCalledTimes(1)
+})
+
+it('unsubscribes from the signal after a once listener has fired', () => {
+  const emitter = new Emitter<{ greeting: TypedEvent<string> }>()
+  const removeHook = vi.fn()
+  emitter.hooks.on('removeListener', removeHook)
+
+  const controller = new AbortController()
+  const listener = vi.fn()
+  emitter.once('greeting', listener, { signal: controller.signal })
+  emitter.emit(new TypedEvent('greeting', { data: 'John' }))
+
+  controller.abort()
+
+  expect(removeHook).toHaveBeenCalledTimes(1)
+})
+
+it('unsubscribes from the signal when removeAllListeners() is called', () => {
+  const emitter = new Emitter<{ greeting: TypedEvent<string> }>()
+  const removeHook = vi.fn()
+  emitter.hooks.on('removeListener', removeHook, { persist: true })
+
+  const controller = new AbortController()
+  emitter.on('greeting', vi.fn(), { signal: controller.signal })
+  emitter.on('greeting', vi.fn(), { signal: controller.signal })
+  emitter.removeAllListeners()
+
+  // The hook fires once per removed listener.
+  expect(removeHook).toHaveBeenCalledTimes(2)
+
+  controller.abort()
+
+  // The abort must not re-trigger the hook because the
+  // signal subscriptions were cleaned up on removal.
+  expect(removeHook).toHaveBeenCalledTimes(2)
+})
+
+it('unsubscribes from the signal when a hook listener is removed', () => {
+  const emitter = new Emitter<{ greeting: TypedEvent<string> }>()
+  const controller = new AbortController()
+  emitter.hooks.on('beforeEmit', vi.fn(), { signal: controller.signal })
+  emitter.hooks.on('beforeEmit', vi.fn(), { signal: controller.signal })
+  emitter.removeAllListeners()
+
+  // The signal must hold no abort subscriptions from the emitter
+  // after the hooks were removed.
+  expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0)
 })

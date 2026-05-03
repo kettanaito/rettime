@@ -67,3 +67,19 @@ it('stops calling listeners if propagation is stopped', async () => {
   ])
   await expect(emitterTwo.emitAsPromise(event)).resolves.toEqual([])
 })
+
+it('does not re-invoke the current listener when it prepends a listener for a different event', async () => {
+  const emitter = new Emitter<{
+    foo: TypedEvent
+    bar: TypedEvent
+  }>()
+
+  const listener = vi.fn(() => {
+    emitter.earlyOn('bar', vi.fn())
+  })
+
+  emitter.on('foo', listener)
+  await emitter.emitAsPromise(new TypedEvent('foo'))
+
+  expect(listener).toHaveBeenCalledTimes(1)
+})
