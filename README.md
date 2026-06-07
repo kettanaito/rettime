@@ -43,7 +43,7 @@ npm install rettime
 
 ### `TypedEvent`
 
-`TypedEvent` is a subset of `MessageEvent` that allows for type-safe event declaration.
+`TypedEvent` is a small event class that allows for type-safe event declaration without relying on DOM event inheritance.
 
 ```ts
 new TypedEvent<DataType, ReturnType, EventType>(type: EventType, { data: DataType })
@@ -100,7 +100,6 @@ const emitter = new Emitter<{ greeting: GreetingEvent<'john'> }>()
 emitter.on('greeting', (event) => {
   console.log(event instanceof GreetingEvent) // true
   console.log(event instanceof TypedEvent) // true
-  console.log(event instanceof MessageEvent) // true
 
   console.log(event.type) // "greeting"
   console.log(event.data) // "john"
@@ -183,7 +182,7 @@ import { Emitter, TypedEvent } from 'rettime'
 const emitter = new Emitter<{ hello: TypedEvent<string> }>()
 
 emitter.on('hello', (event) => {
-  // `event` is a `TypedEvent` instance derived from `MessageEvent`.
+  // `event` is a `TypedEvent` instance.
   console.log(event.data)
 })
 ```
