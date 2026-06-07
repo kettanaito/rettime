@@ -35,7 +35,9 @@ it('rejects if one of the listeners throws', async () => {
 
 it('stops calling listeners if immediate propagation is stopped', async () => {
   const emitter = new Emitter<{ hello: TypedEvent }>()
-  const listenerOne = vi.fn((event: Event) => event.stopImmediatePropagation())
+  const listenerOne = vi.fn((event: TypedEvent) =>
+    event.stopImmediatePropagation(),
+  )
   const listenerTwo = vi.fn()
   emitter.on('hello', listenerOne)
   emitter.on('hello', listenerTwo)
@@ -47,8 +49,12 @@ it('stops calling listeners if immediate propagation is stopped', async () => {
 })
 
 it('stops calling listeners if propagation is stopped', async () => {
-  const emitterOne = new Emitter<{ greet: TypedEvent<string, Event> }>()
-  const emitterTwo = new Emitter<{ greet: TypedEvent<string, Event> }>()
+  const emitterOne = new Emitter<{
+    greet: TypedEvent<string, unknown>
+  }>()
+  const emitterTwo = new Emitter<{
+    greet: TypedEvent<string, unknown>
+  }>()
 
   emitterOne.on('greet', (event) => event)
   emitterOne.on('greet', (event) => {
@@ -62,8 +68,8 @@ it('stops calling listeners if propagation is stopped', async () => {
   const event = new TypedEvent('greet', { data: 'hello' })
 
   await expect(emitterOne.emitAsPromise(event)).resolves.toEqual([
-    expect.any(Event),
-    expect.any(Event),
+    expect.any(TypedEvent),
+    expect.any(TypedEvent),
   ])
   await expect(emitterTwo.emitAsPromise(event)).resolves.toEqual([])
 })

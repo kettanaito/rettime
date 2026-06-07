@@ -15,14 +15,6 @@ type IsReservedEvent<Type extends string> = Type extends keyof ReservedEventMap
   ? true
   : false
 
-export interface TypedEvent<
-  DataType = void,
-  ReturnType = void,
-  EventType extends string = string,
-> extends Omit<MessageEvent<DataType>, 'type'> {
-  type: EventType
-}
-
 const kDefaultPrevented = Symbol('kDefaultPrevented')
 const kPropagationStopped = Symbol('kPropagationStopped')
 const kImmediatePropagationStopped = Symbol('kImmediatePropagationStopped')
@@ -31,10 +23,7 @@ export class TypedEvent<
   DataType = void,
   ReturnType = void,
   EventType extends string = string,
->
-  extends MessageEvent<DataType>
-  implements TypedEvent<DataType, ReturnType, EventType>
-{
+> {
   /**
    * @note Keep a placeholder property with the return type
    * because the type must be set somewhere in order to be
@@ -46,12 +35,17 @@ export class TypedEvent<
   [kPropagationStopped]?: Emitter<any>;
   [kImmediatePropagationStopped]?: boolean
 
+  public readonly data: DataType
+  public readonly type: EventType
+
   constructor(
     ...args: [DataType] extends [void]
       ? [type: EventType]
       : [type: EventType, init: { data: DataType }]
   ) {
-    super(args[0], args[1])
+    const [type, init] = args
+    this.type = type
+    this.data = init?.data as DataType
     this[kDefaultPrevented] = false
   }
 
@@ -60,17 +54,15 @@ export class TypedEvent<
   }
 
   public preventDefault(): void {
-    super.preventDefault()
     this[kDefaultPrevented] = true
   }
 
   public stopImmediatePropagation(): void {
-    /**
-     * @note Despite `.stopPropagation()` and `.stopImmediatePropagation()` being defined
-     * in Node.js, they do nothing. It is safe to re-define them.
-     */
-    super.stopImmediatePropagation()
     this[kImmediatePropagationStopped] = true
+  }
+
+  public stopPropagation(): void {
+    // Propagation state is managed by the emitting `Emitter` instance.
   }
 }
 
@@ -835,7 +827,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
     }
   }
 
-  #callListener(event: Event, listener: (event: any) => any) {
+  #callListener(event: TypedEvent, listener: (event: any) => any) {
     for (const hook of this.#hookListeners.get('beforeEmit').slice()) {
       if (hook(event as EventMap[keyof EventMap & string]) === false) {
         return
