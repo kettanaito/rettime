@@ -51,7 +51,12 @@ export class TypedEvent<
       ? [type: EventType]
       : [type: EventType, init: { data: DataType }]
   ) {
-    super(args[0], args[1])
+    /**
+     * @note Always provide an event initializer. Some runtimes
+     * (e.g. Cloudflare Workers) throw when constructing a `MessageEvent`
+     * with an `undefined` initializer, unlike Node.js and browsers.
+     */
+    super(args[0], args[1] ?? {})
     this[kDefaultPrevented] = false
   }
 
