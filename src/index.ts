@@ -847,10 +847,12 @@ export class Emitter<EventMap extends DefaultEventMap> {
       }
     }
 
-    const returnValue = listener.call(this, event)
-
     const options = this.#listenerOptions.get(listener)
 
+    /**
+     * @note Remove one-time listeners before calling them
+     * so they are gone even if they re-emit the event or throw.
+     */
     if (options?.once) {
       const type = this.#isTypelessListener(listener) ? '*' : event.type
 
@@ -861,7 +863,7 @@ export class Emitter<EventMap extends DefaultEventMap> {
       }
     }
 
-    return returnValue
+    return listener.call(this, event)
   }
 
   /**
