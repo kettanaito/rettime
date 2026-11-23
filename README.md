@@ -8,7 +8,7 @@ A type-safe marriage of `EventTarget` and `EventEmitter`.
 - 🗼 **Emitter-inspired**. Emit event types and data, don't bother with creating `Event` instances. A bit less verbosity than a common `EventTarget`.
 - ⛑️ **Type-safe**. Describe the exact event types and payloads accepted by the emitter. Never emit or listen to unknown events.
 - 🧰 **Convenience methods** like `.emitAsPromise()` and `.emitAsGenerator()` to build more complex event-driven systems.
-- 🐙 **Tiny**. 700B gzipped.
+- 🐙 **Tiny and dependency-free**.
 
 > [!WARNING]
 > This library **does not** have performance as the end goal. In fact, since it operates on events and supports event cancellation, it will likely be _slower_ than the emitters that don't do that.
